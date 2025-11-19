@@ -151,6 +151,98 @@
     </script>
 
     <script>
+        // --- CORE UTILITIES (Defined first to prevent ReferenceErrors) ---
+        function getEl(id) { return document.getElementById(id); }
+
+        function showView(name) {
+            ['auth-view', 'app-view'].forEach(id => getEl(id).classList.add('hidden'));
+            getEl(name + '-view').classList.remove('hidden');
+        }
+
+        function toggleSidebar(show) {
+            const sb = getEl('sidebar'), ov = getEl('overlay');
+            show ? (sb.classList.add('open'), ov.classList.add('visible')) : (sb.classList.remove('open'), ov.classList.remove('visible'));
+        }
+
+        function switchPanel(panelId) {
+            if (window.innerWidth < 768) toggleSidebar(false);
+            ['room-list-panel', 'chat-interface'].forEach(p => getEl(p).classList.add('hidden'));
+            const panel = getEl(panelId);
+            if(panel) panel.classList.remove('hidden');
+            if(panelId === 'chat-interface') getEl('msg-box').scrollTop = getEl('msg-box').scrollHeight;
+        }
+
+        function resetModal() {
+            getEl('modal-input').classList.add('hidden');
+            getEl('modal-input').value = '';
+            getEl('modal-cancel-btn').classList.add('hidden');
+            getEl('custom-modal-backdrop').classList.add('hidden');
+        }
+
+        let confirmCallback = null;
+        function closeModal(result) {
+            getEl('custom-modal-backdrop').classList.add('hidden');
+            if (confirmCallback) { 
+                const cb = confirmCallback;
+                confirmCallback = null; 
+                cb(result); 
+            }
+        }
+
+        function showCustomAlert(message, title = 'System Alert') {
+            resetModal();
+            getEl('modal-title').textContent = title;
+            getEl('modal-message').textContent = message;
+            getEl('modal-ok-btn').textContent = 'OK';
+            getEl('custom-modal-backdrop').classList.remove('hidden');
+            confirmCallback = null;
+        }
+
+        function showCustomConfirm(message, callback, title = 'Confirm', okText = 'Yes', cancelText = 'Cancel') {
+            resetModal();
+            getEl('modal-title').textContent = title;
+            getEl('modal-message').textContent = message;
+            getEl('modal-cancel-btn').classList.remove('hidden');
+            getEl('modal-ok-btn').textContent = okText;
+            getEl('modal-cancel-btn').textContent = cancelText;
+            getEl('custom-modal-backdrop').classList.remove('hidden');
+            confirmCallback = callback;
+        }
+
+        function showCustomPrompt(message, callback, title = 'Input', placeholder = '', isPassword = false) {
+            resetModal();
+            getEl('modal-title').textContent = title;
+            getEl('modal-message').textContent = message;
+            getEl('modal-cancel-btn').classList.remove('hidden');
+            getEl('modal-ok-btn').textContent = 'Submit';
+            const input = getEl('modal-input');
+            input.classList.remove('hidden');
+            input.type = isPassword ? 'password' : 'text';
+            input.placeholder = placeholder;
+            getEl('custom-modal-backdrop').classList.remove('hidden');
+            setTimeout(() => input.focus(), 50);
+            confirmCallback = (result) => { result === true ? callback(input.value) : callback(null); };
+        }
+
+        function setTheme(mode) {
+            const html = document.documentElement;
+            if (mode === 'light') {
+                html.classList.add('light');
+                localStorage.setItem('uniworld-theme', 'light');
+            } else {
+                html.classList.remove('light');
+                localStorage.setItem('uniworld-theme', 'dark');
+            }
+        }
+        
+        function setInlineError(id, msg) {
+            getEl(id).textContent = msg;
+        }
+        function clearInlineErrors() {
+            document.querySelectorAll('.inline-error').forEach(el => el.textContent = '');
+        }
+
+        // --- APP LOGIC ---
         const firebaseConfig = {
             apiKey: "AIzaSyC6K-Gxi6WhT298CFxo6YfwaQjx_jgYO8s",
             authDomain: "wisp-67568.firebaseapp.com",
@@ -186,8 +278,6 @@
             const hashArray = Array.from(new Uint8Array(hashBuffer));
             return hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
         }
-
-        function getEl(id) { return document.getElementById(id); }
 
         window.addEventListener('load', () => {
             // Load theme
@@ -316,6 +406,7 @@
             getEl('edit-username').value = data.username || '';
             getEl('edit-alias').value = data.alias || ''; 
             getEl('edit-bio').value = data.bio || '';
+            getEl('edit-avatar').value = data.avatar || '';
             getEl('edit-avatar-preview').src = data.avatar || '';
             
             const el = getEl('status-indicator');
@@ -474,7 +565,7 @@
                 const div = document.createElement('div');
                 div.className = 'p-2 hover:bg-[#27272a] cursor-pointer flex items-center gap-3 rounded-lg transition mb-1';
                 div.innerHTML = `
-                    <div class="relative flex-shrink-0"><img src="${u.avatar}" onerror="this.src='https://api.dicebear.com/9.x/bottts-neutral/svg?seed=fallback'" class="w-8 h-8 rounded-full bg-gray-700 object-cover"><div class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[#18181b] ${u.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}"></div></div>
+                    <div class="relative flex-shrink-0"><img src="${u.avatar}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=fallback'" class="w-8 h-8 rounded-full bg-gray-700 object-cover"><div class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[#18181b] ${u.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}"></div></div>
                     <div class="min-w-0 overflow-hidden">
                         <div class="text-sm font-bold text-gray-200 truncate">${u.username}</div>
                         ${u.alias ? `<div class="text-[10px] text-gray-500 truncate">@${u.alias}</div>` : ''}
@@ -486,7 +577,6 @@
         }
 
         function updateUserInUI(user) {
-             // If username/avatar changes, live update chat
              const nameEls = document.querySelectorAll(`.username-display-${user.id}`);
              nameEls.forEach(el => el.textContent = user.username);
              const imgEls = document.querySelectorAll(`.avatar-display-${user.id}`);
@@ -599,10 +689,6 @@
                 }
                 return `<span class="text-amber-500 font-semibold">${match}</span>`;
             });
-
-            // 3. LAYOUT UPDATE (Stuck Avatar/Bubble)
-            // "Theirs": Avatar Bottom-Left, Username inside bubble top.
-            // "Mine": Just bubble, aligned right.
 
             const div = document.createElement('div');
             div.id = `msg-${m.id}`;
@@ -898,240 +984,6 @@
             openRoom(dmId, dmName, null, { expires_at: Date.now() + (365 * 24 * 60 * 60 * 1000)});
         }
 
-        async function updateProfile() {
-            const { updateDoc, doc } = window.firebaseModules;
-            // 1. REMOVED AVATAR SELECTION LOGIC
-            // Avatar updates are no longer supported manually to simplify UI.
-            // User keeps existing avatar. If new user, it is auto-generated in handleSignup.
-            const updates = { 
-                username: getEl('edit-username').value, 
-                username_lower: getEl('edit-username').value.toLowerCase(),
-                alias: getEl('edit-alias').value,
-                bio: getEl('edit-bio').value, 
-                updated_at: new Date().toISOString() 
-            };
-            try {
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'profiles', currentUser.uid), updates);
-                showCustomAlert("Identity Updated!", 'Success');
-                closeProfileModal();
-            } catch(e) {
-                showCustomAlert("Error: " + e.message, 'Update Failed');
-            }
-        }
-
-        function setInlineError(id, msg) {
-            getEl(id).textContent = msg;
-        }
-        function clearInlineErrors() {
-            document.querySelectorAll('.inline-error').forEach(el => el.textContent = '');
-        }
-
-        async function handleLogin() {
-            clearInlineErrors();
-            const btn = getEl('btn-login'); 
-            const originalText = btn.textContent;
-            const inputVal = getEl('l-email').value.trim();
-            const password = getEl('l-pass').value;
-            
-            if(!inputVal || !password) {
-                setInlineError('login-error-email', "Credentials missing.");
-                return;
-            }
-
-            btn.textContent = "CONNECTING...";
-            btn.disabled = true;
-
-            const { signInWithEmailAndPassword, getDocs, query, where } = window.firebaseModules;
-            
-            let emailToUse = inputVal;
-            
-            if (!inputVal.includes('@')) {
-                try {
-                    const profilesCol = getPublicCollection('profiles');
-                    const q = query(profilesCol, where('username', '==', inputVal));
-                    const snap = await getDocs(q);
-                    
-                    if (snap.empty) {
-                        setInlineError('login-error-email', "Username not found.");
-                        btn.textContent = originalText;
-                        btn.disabled = false;
-                        return;
-                    }
-                    emailToUse = snap.docs[0].data().email;
-                } catch(err) {
-                    console.error(err);
-                    showCustomAlert("Error verifying username.", "System Error");
-                    btn.textContent = originalText;
-                    btn.disabled = false;
-                    return;
-                }
-            }
-
-            try {
-                await signInWithEmailAndPassword(auth, emailToUse, password);
-            } catch(e) {
-                btn.textContent = originalText;
-                btn.disabled = false;
-                
-                if(e.code === 'auth/invalid-email' || e.code === 'auth/user-not-found') {
-                    setInlineError('login-error-email', "Invalid or unknown user.");
-                } else if(e.code === 'auth/wrong-password') {
-                    setInlineError('login-error-pass', "Invalid passphrase.");
-                } else {
-                    showCustomAlert(e.message, 'Login Failed');
-                }
-            }
-        }
-
-        async function handleSignup() {
-            clearInlineErrors();
-            const btn = getEl('btn-signup'); 
-            const originalText = btn.textContent;
-
-            btn.textContent = "PROCESSING...";
-            btn.disabled = true;
-
-            const { createUserWithEmailAndPassword, setDoc, doc } = window.firebaseModules;
-            const email = getEl('s-email').value;
-            const password = getEl('s-pass').value;
-            const username = getEl('s-username').value;
-            const alias = getEl('s-alias').value;
-
-            if(!username) {
-                setInlineError('signup-error-user', "Username required.");
-                btn.textContent = originalText;
-                btn.disabled = false;
-                return;
-            }
-
-            try {
-                const cred = await createUserWithEmailAndPassword(auth, email, password);
-                const avatar = `https://api.dicebear.com/9.x/bottts-neutral/svg?seed=${cred.user.uid}`;
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'profiles', cred.user.uid), {
-                    id: cred.user.uid,
-                    username: username,
-                    username_lower: username.toLowerCase(), 
-                    alias: alias,
-                    email: email,
-                    avatar: avatar,
-                    status: 'online',
-                    lat: null, lon: null
-                });
-
-                showCustomAlert("Identity Created. Logging in...", 'Success');
-            } catch(e) {
-                btn.textContent = originalText;
-                btn.disabled = false;
-                
-                if(e.code === 'auth/email-already-in-use') setInlineError('signup-error-email', "Email already registered.");
-                else if(e.code === 'auth/weak-password') setInlineError('signup-error-pass', "Password too weak.");
-                else showCustomAlert(e.message, 'Registration Failed');
-            }
-        }
-        
-        function togglePassword(inputId, iconId) {
-            const input = getEl(inputId);
-            const icon = getEl(iconId);
-            if(input.type === 'password') {
-                input.type = 'text';
-                icon.classList.replace('fa-eye', 'fa-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.replace('fa-eye-slash', 'fa-eye');
-            }
-        }
-
-        async function handleForgotPassword() {
-            const email = getEl('l-email').value;
-            if(!email || !email.includes('@')) {
-                setInlineError('login-error-email', "Enter a valid email first.");
-                return;
-            }
-            const { sendPasswordResetEmail } = window.firebaseModules;
-            try {
-                await sendPasswordResetEmail(auth, email);
-                showCustomAlert(`Reset link sent to ${email}. Check your inbox.`, "Link Sent");
-            } catch(e) {
-                showCustomAlert(e.message, "Error");
-            }
-        }
-
-        function handleLogout() { window.firebaseModules.signOut(auth); window.location.reload(); }
-
-        function haversineKm(lat1, lon1, lat2, lon2) {
-            const R = 6371; 
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
-        }
-
-        function findNearby() {
-            if(!currentUser || !profileCache[currentUser.uid]) return [];
-            const me = profileCache[currentUser.uid];
-            if(!me.lat || !me.lon) {
-                showCustomAlert('Location data unavailable. Enable permissions.', 'System Notice');
-                return [];
-            }
-            const nearby = [];
-            Object.values(profileCache).forEach(u => {
-                if(!u.lat || !u.lon || u.id === currentUser.uid) return;
-                const dist = haversineKm(me.lat, me.lon, u.lat, u.lon);
-                if(dist <= NEARBY_RADIUS_KM) nearby.push({...u, distance_km: +(dist.toFixed(2))});
-            });
-            return nearby.sort((a,b) => a.distance_km - b.distance_km);
-        }
-
-        function showNearby() {
-            const list = findNearby();
-            const existing = document.getElementById('nearby-modal');
-            if(existing) existing.remove();
-
-            const modal = document.createElement('div');
-            modal.id = 'nearby-modal';
-            modal.className = 'nearby-modal';
-            modal.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:12px;">
-                <div style="font-weight:700;font-size:1.25rem;">NEARBY USERS</div>
-                <div><button onclick="document.getElementById('nearby-modal')?.remove()" class="btn" style="width:auto;padding:6px 10px;background:var(--input-bg);color:var(--text);border-radius:8px">Close</button></div>
-            </div>
-            <div id="nearby-list" style="max-height: calc(100% - 60px); overflow-y: auto;">
-                ${list.length ? '' : `<div class="text-gray-500 text-center py-8">No nearby users found within ${NEARBY_RADIUS_KM} km.</div>`}
-            </div>`;
-            document.body.appendChild(modal);
-
-            const container = document.getElementById('nearby-list');
-            list.forEach(u => {
-                const item = document.createElement('div');
-                item.className = 'nearby-item';
-                item.onclick = () => { startDM(u); modal.remove(); };
-                item.innerHTML = `<img src="${u.avatar}" onerror="this.src='https://api.dicebear.com/9.x/bottts-neutral/svg?seed=err'" class="w-10 h-10 rounded-lg object-cover border border-gray-700 flex-shrink-0">
-                    <div style="flex:1">
-                      <div style="font-weight:700">${u.username} <span style="color:var(--text-muted);font-size:12px">• ${u.distance_km} km</span></div>
-                      <div style="font-size:12px;color:var(--text-muted)">${u.bio ? u.bio.slice(0,80) : 'No bio set.'}</div>
-                    </div>
-                    <div style="display:flex;gap:8px">
-                      <button class="btn" style="width:auto;padding:6px 10px;background:var(--primary);color:black;">Message</button>
-                    </div>`;
-                container.appendChild(item);
-            });
-        }
-
-        function showView(name) {
-            ['auth-view', 'app-view'].forEach(id => getEl(id).classList.add('hidden'));
-            getEl(name + '-view').classList.remove('hidden');
-        }
-        function toggleSidebar(show) {
-            const sb = getEl('sidebar'), ov = getEl('overlay');
-            show ? (sb.classList.add('open'), ov.classList.add('visible')) : (sb.classList.remove('open'), ov.classList.remove('visible'));
-        }
-        function switchPanel(panelId) {
-            if (window.innerWidth < 768) toggleSidebar(false);
-            ['room-list-panel', 'chat-interface'].forEach(p => getEl(p).classList.add('hidden'));
-            const panel = getEl(panelId);
-            if(panel) panel.classList.remove('hidden');
-            
-            if(panelId === 'chat-interface') getEl('msg-box').scrollTop = getEl('msg-box').scrollHeight;
-        }
         function goBack() {
             if(currentRoomId) { 
                 updateTypingStatus(false);
@@ -1180,65 +1032,6 @@
             });
         }
 
-        // 2. THEME DROPDOWN LOGIC
-        function setTheme(mode) {
-            const html = document.documentElement;
-            if (mode === 'light') {
-                html.classList.add('light');
-                localStorage.setItem('uniworld-theme', 'light');
-            } else {
-                html.classList.remove('light');
-                localStorage.setItem('uniworld-theme', 'dark');
-            }
-        }
-
-        function resetModal() {
-            getEl('modal-input').classList.add('hidden');
-            getEl('modal-input').value = '';
-            getEl('modal-cancel-btn').classList.add('hidden');
-            getEl('custom-modal-backdrop').classList.add('hidden');
-        }
-        function showCustomAlert(message, title = 'System Alert') {
-            resetModal();
-            getEl('modal-title').textContent = title;
-            getEl('modal-message').textContent = message;
-            getEl('modal-ok-btn').textContent = 'OK';
-            getEl('custom-modal-backdrop').classList.remove('hidden');
-            confirmCallback = null;
-        }
-        function showCustomConfirm(message, callback, title = 'Confirm', okText = 'Yes', cancelText = 'Cancel') {
-            resetModal();
-            getEl('modal-title').textContent = title;
-            getEl('modal-message').textContent = message;
-            getEl('modal-cancel-btn').classList.remove('hidden');
-            getEl('modal-ok-btn').textContent = okText;
-            getEl('modal-cancel-btn').textContent = cancelText;
-            getEl('custom-modal-backdrop').classList.remove('hidden');
-            confirmCallback = callback;
-        }
-        function showCustomPrompt(message, callback, title = 'Input', placeholder = '', isPassword = false) {
-            resetModal();
-            getEl('modal-title').textContent = title;
-            getEl('modal-message').textContent = message;
-            getEl('modal-cancel-btn').classList.remove('hidden');
-            getEl('modal-ok-btn').textContent = 'Submit';
-            const input = getEl('modal-input');
-            input.classList.remove('hidden');
-            input.type = isPassword ? 'password' : 'text';
-            input.placeholder = placeholder;
-            getEl('custom-modal-backdrop').classList.remove('hidden');
-            setTimeout(() => input.focus(), 50);
-            confirmCallback = (result) => { result === true ? callback(input.value) : callback(null); };
-        }
-        let confirmCallback = null;
-        function closeModal(result) {
-            getEl('custom-modal-backdrop').classList.add('hidden');
-            if (confirmCallback) { 
-                const cb = confirmCallback;
-                confirmCallback = null; 
-                cb(result); 
-            }
-        }
         function handleModalKey(e) { if(e.key === 'Enter') closeModal(true); }
     </script>
 </head>
@@ -1301,9 +1094,10 @@
             
             <div class="flex justify-center mb-6"><div class="relative"><img id="edit-avatar-preview" src="" class="w-16 h-16 rounded-lg border-2 border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.3)]" onerror="this.src='https://api.dicebear.com/9.x/bottts-neutral/svg?seed=fallback'"></div></div>
             
-            <!-- 1. REMOVED AVATAR GRID/INPUT UI -->
-            
             <div class="space-y-4">
+                <!-- ADDED BACK CUSTOM AVATAR INPUT -->
+                <div><label class="text-xs font-bold text-[var(--text-muted)] ml-1 mb-1 block">CUSTOM AVATAR URL</label><input id="edit-avatar" type="text" class="input-field" placeholder="https://..." oninput="document.getElementById('edit-avatar-preview').src = this.value"></div>
+                
                 <div><label class="text-xs font-bold text-[var(--text-muted)] ml-1 mb-1 block">ALIAS / NICKNAME</label><input id="edit-alias" type="text" class="input-field" placeholder="@callsign"></div>
                 <div><label class="text-xs font-bold text-[var(--text-muted)] ml-1 mb-1 block">USERNAME</label><input id="edit-username" type="text" class="input-field"></div>
                 <div><label class="text-xs font-bold text-[var(--text-muted)] ml-1 mb-1 block">BIO DATA</label><textarea id="edit-bio" rows="3" class="input-field resize-none"></textarea></div>
