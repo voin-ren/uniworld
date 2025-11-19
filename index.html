@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>UniWorld | Firebase Live</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+
+    <style>
+        /* THEME VARIABLES */
+        :root { 
+            --bg: #09090b; 
+            --panel: #18181b; 
+            --primary: #f59e0b; 
+            --text: #e4e4e7; 
+            --text-muted: #a1a1aa;
+            --danger: #ef4444; 
+            --input-bg: #27272a;
+            --border: #3f3f46;
+            --glass-bg: rgba(24, 24, 27, 0.98);
+            --msg-mine: #78350f;
+            --msg-mine-text: #fef3c7;
+            --msg-theirs: #27272a;
+            --msg-theirs-text: #e4e4e7;
+        }
+
+        /* Light Mode Overrides */
+        html.light {
+            --bg: #f4f4f5;
+            --panel: #ffffff;
+            --text: #18181b;
+            --text-muted: #71717a;
+            --input-bg: #e4e4e7;
+            --border: #d4d4d8;
+            --glass-bg: rgba(255, 255, 255, 0.98);
+            --msg-mine: #fbbf24;
+            --msg-mine-text: #451a03;
+            --msg-theirs: #ffffff; /* White bubble for theirs in light mode */
+            --msg-theirs-text: #18181b;
+        }
+        
+        /* Tailwind Overrides */
+        .bg-\[\#09090b\] { background-color: var(--bg) !important; }
+        .bg-\[\#18181b\] { background-color: var(--panel) !important; }
+        .bg-\[\#27272a\] { background-color: var(--input-bg) !important; }
+        .border-\[\#27272a\] { border-color: var(--border) !important; }
+        .border-\[\#3f3f46\] { border-color: var(--border) !important; }
+        .text-gray-300 { color: var(--text) !important; } 
+        
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; overflow: hidden; position: fixed; inset: 0; }
+        .hidden { display: none !important; }
+        * { transition: background-color 0.2s, border-color 0.2s, color 0.2s; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+
+        .btn { background: var(--primary); color: black; font-weight: 800; border: none; padding: 12px; cursor: pointer; width: 100%; border-radius: 8px; text-transform: uppercase; letter-spacing: 1px; font-size: 14px; }
+        .btn:active { transform: scale(0.98); opacity: 0.9; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.5); }
+        
+        .input-field { background: var(--input-bg); border: 1px solid var(--border); color: var(--text); padding: 12px; width: 100%; border-radius: 8px; outline: none; font-family: inherit; }
+        .input-field:focus { border-color: var(--primary); }
+        
+        .glass-card { background: var(--glass-bg); border: 1px solid var(--border); padding: 2rem; width: 90%; max-width: 400px; margin: auto; border-radius: 16px; }
+
+        .app-container { display: flex; width: 100%; height: 100%; overflow: hidden; position: relative; }
+        .sidebar { width: 300px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; height: 100%; flex-shrink: 0; z-index: 40; }
+        .main-area { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; height: 100%; overflow: hidden; }
+        
+        /* 3. CHAT LAYOUT UPDATES (Sticky Avatar/Bubble) */
+        .msg-row { display: flex; margin-bottom: 12px; padding: 0 16px; animation: popIn 0.1s ease-out; width: 100%; }
+        .msg-row.mine { justify-content: flex-end; }
+        .msg-row.theirs { justify-content: flex-start; align-items: flex-end; gap: 8px; } /* Align bottom to stick avatar */
+
+        .msg-bubble { padding: 6px 10px; border-radius: 12px; max-width: 75%; position: relative; font-family: sans-serif; line-height: 1.5; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); word-wrap: break-word; min-width: 80px; }
+        
+        /* Bubble Specifics */
+        .msg-bubble.mine { background: var(--msg-mine); border: 1px solid var(--primary); color: var(--msg-mine-text); border-bottom-right-radius: 2px; }
+        .msg-bubble.theirs { background: var(--msg-theirs); border: 1px solid var(--border); color: var(--msg-theirs-text); border-bottom-left-radius: 2px; }
+        .msg-pending { opacity: 0.6; border: 1px dashed #f59e0b; }
+        
+        /* Mention Highlight */
+        .mention { color: #fcd34d; font-weight: bold; background: rgba(245, 158, 11, 0.15); padding: 0 4px; border-radius: 4px; cursor: pointer; }
+        html.light .mention { color: #b45309; background: rgba(245, 158, 11, 0.3); }
+
+        /* Delete Action Hover */
+        .msg-actions { position: absolute; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity 0.2s; }
+        .msg-row.mine .msg-actions { left: -40px; }
+        .msg-row:hover .msg-actions { opacity: 1; }
+        
+        @keyframes popIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 768px) {
+            .sidebar { position: absolute; top: 0; left: 0; width: 85%; max-width: 320px; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 10px 0 25px rgba(0,0,0,0.5); }
+            .sidebar.open { transform: translateX(0); }
+            .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 30; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+            .overlay.visible { opacity: 1; pointer-events: auto; }
+            .msg-bubble { max-width: 85%; }
+        }
+        @media (min-width: 769px) { .overlay { display: none; } .msg-bubble { max-width: 60%; } }
+
+        /* Nearby modal */
+        .nearby-modal { position: fixed; inset: 12% 12% 12% 12%; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; z-index: 60; overflow:auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .nearby-item { display:flex; gap:12px; align-items:center; padding:8px; border-radius:8px; cursor:pointer; }
+        .nearby-item:hover { background: rgba(255,255,255,0.05); }
+        
+        /* Mention Dropdown */
+        .mention-dropdown { position: absolute; bottom: 100%; left: 0; width: 220px; max-height: 150px; overflow-y: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; z-index: 50; box-shadow: 0 -4px 15px rgba(0,0,0,0.5); display: none; }
+        .mention-item { padding: 10px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; border-bottom: 1px solid var(--border); color: var(--text); }
+        .mention-item:hover, .mention-item.active { background: var(--input-bg); color: var(--primary); }
+
+        /* Password Container */
+        .input-group { position: relative; display: flex; align-items: center; }
+        .password-toggle { position: absolute; right: 12px; color: var(--text-muted); cursor: pointer; padding: 4px; transition: color 0.2s; }
+        .password-toggle:hover { color: var(--primary); }
+
+        .inline-error { color: var(--danger); font-size: 0.7rem; margin-top: 4px; margin-left: 2px; height: 14px; font-weight: 600; }
+        
+        .auth-toggle-btn { cursor: pointer; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-size: 0.85rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); transition: all 0.2s; }
+        .auth-toggle-btn:hover { color: var(--primary); text-shadow: 0 0 8px rgba(245,158,11,0.4); }
+
+        /* Typing Indicator */
+        .typing-indicator { font-size: 0.75rem; color: var(--text-muted); padding: 0 16px 8px 16px; min-height: 24px; font-style: italic; opacity: 0; transition: opacity 0.3s; }
+        .typing-indicator.active { opacity: 1; }
+        .typing-dot { display: inline-block; animation: pulse 1.5s infinite; margin-right: 2px; font-weight: bold; color: var(--primary); }
+        @keyframes pulse { 0% { opacity: .2; } 50% { opacity: 1; } 100% { opacity: .2; } }
+
+        /* BLUR MODALS */
+        .blur-modal-overlay { position: fixed; inset: 0; z-index: 50; backdrop-filter: blur(8px); background-color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+        .blur-modal-overlay.visible { opacity: 1; pointer-events: auto; }
+        .modal-card { background: var(--panel); border: 1px solid var(--border); padding: 2rem; width: 90%; max-width: 480px; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); position: relative; max-height: 90vh; overflow-y: auto; }
+
+        /* 2. THEME DROPDOWN */
+        .theme-select { width: 100%; padding: 10px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px; cursor: pointer; appearance: none; font-weight: bold; }
+        .theme-select:focus { border-color: var(--primary); outline: none; }
+    </style>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- FIREBASE SDK SETUP -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        window.firebaseModules = { initializeApp, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, serverTimestamp };
+    </script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC6K-Gxi6WhT298CFxo6YfwaQjx_jgYO8s",
+            authDomain: "wisp-67568.firebaseapp.com",
+            projectId: "wisp-67568",
+            storageBucket: "wisp-67568.firebasestorage.app",
+            messagingSenderId: "713497967554",
+            appId: "1:713497967554:web:9c64466d6896f7fa7f745b",
+            measurementId: "G-6PREKBM1GP"
+        };
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'uniworld-chat-v2';
+        
+        let app, auth, db;
+        let currentUser = null; 
+        let currentRoomId = null;
+        let currentRoomData = null; 
+        let roomUnsubscribe = null;
+        let messageUnsubscribe = null;
+        let profileUnsubscribe = null;
+        let typingUnsubscribe = null; 
+        
+        let profileCache = {}; 
+        let allRoomsCache = []; 
+        const NEARBY_RADIUS_KM = 10; 
+        
+        let lastTypingTime = 0;
+        const TYPING_THROTTLE = 2000; 
+
+        async function sha256Hex(message) {
+            const enc = new TextEncoder();
+            const data = enc.encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
+        }
+
+        function getEl(id) { return document.getElementById(id); }
+
+        window.addEventListener('load', () => {
+            // Load theme
+            const savedTheme = localStorage.getItem('uniworld-theme') || 'dark';
+            if (savedTheme === 'light') document.documentElement.classList.add('light');
+            // Set dropdown initial value
+            const select = getEl('theme-select');
+            if (select) select.value = savedTheme;
+
+            const checkModules = setInterval(() => {
+                if (window.firebaseModules) {
+                    clearInterval(checkModules);
+                    initFirebase();
+                }
+            }, 100);
+            
+            getEl('l-pass').addEventListener('keypress', (e) => {
+                if(e.key === 'Enter') handleLogin();
+            });
+            
+            getEl('room-search').addEventListener('input', (e) => filterRooms(e.target.value));
+            
+            getEl('msg-inp').addEventListener('input', (e) => {
+                handleChatInput(e);
+                handleTypingInput();
+            });
+            getEl('msg-inp').addEventListener('keydown', handleChatKeydown);
+        });
+
+        function initFirebase() {
+            const { initializeApp, getAuth, getFirestore, onAuthStateChanged } = window.firebaseModules;
+            
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            const radiusEl = document.getElementById('radius-display');
+            if(radiusEl) radiusEl.textContent = `within ${NEARBY_RADIUS_KM}km`;
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    handleSession(user);
+                } else {
+                    currentUser = null;
+                    showView('auth');
+                }
+            });
+
+            window.addEventListener('resize', () => {
+                if(window.innerWidth >= 768) { getEl('sidebar').classList.remove('open'); getEl('overlay').classList.remove('visible'); }
+            });
+            
+            setInterval(updateTimers, 60000);
+        }
+
+        const getPublicCollection = (name) => window.firebaseModules.collection(db, 'artifacts', appId, 'public', 'data', name);
+        
+        async function handleSession(user) {
+            currentUser = user;
+            showView('app');
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const deepLinkRoomId = urlParams.get('room');
+
+            const { doc, getDoc, setDoc, updateDoc } = window.firebaseModules;
+            const profileRef = doc(db, 'artifacts', appId, 'public', 'data', 'profiles', user.uid);
+            
+            try {
+                const snap = await getDoc(profileRef);
+                if (snap.exists()) {
+                    const data = snap.data();
+                    profileCache[user.uid] = data;
+                    updateMyProfileUI(data);
+                } else {
+                    const avatar = `https://api.dicebear.com/9.x/bottts-neutral/svg?seed=${user.uid}`;
+                    const newProfile = { 
+                        id: user.uid, 
+                        username: 'User-'+user.uid.slice(0,6), 
+                        username_lower: ('User-'+user.uid.slice(0,6)).toLowerCase(), 
+                        alias: '', 
+                        email: user.email || null, 
+                        avatar, 
+                        status: 'online',
+                        lat: null, lon: null
+                    };
+                    await setDoc(profileRef, newProfile);
+                    profileCache[user.uid] = newProfile;
+                    updateMyProfileUI(newProfile);
+                }
+            } catch (err) {
+                console.error("Profile fetch error.", err);
+            }
+
+            if(navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async pos => {
+                    try {
+                        await updateDoc(profileRef, { lat: pos.coords.latitude, lon: pos.coords.longitude });
+                    } catch(e) {}
+                }, err => console.warn(err));
+            }
+
+            initializeRealtime();
+            
+            if (deepLinkRoomId) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+                try {
+                    const roomDoc = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', deepLinkRoomId));
+                    if (roomDoc.exists()) {
+                        const r = { id: roomDoc.id, ...roomDoc.data() };
+                        openRoom(r.id, r.name, r.password_hash, r);
+                    } else {
+                        showCustomAlert("Room not found or expired.", "Deep Link Error");
+                    }
+                } catch(e) {
+                    console.error("Deep link fetch error", e);
+                }
+            }
+        }
+
+        function updateMyProfileUI(data) {
+            const avatarEl = getEl('my-avatar');
+            if(avatarEl) avatarEl.src = data.avatar || '';
+            const nameEl = getEl('my-name');
+            if(nameEl) nameEl.textContent = data.username || 'Anon User';
+            
+            getEl('edit-username').value = data.username || '';
+            getEl('edit-alias').value = data.alias || ''; 
+            getEl('edit-bio').value = data.bio || '';
+            getEl('edit-avatar-preview').src = data.avatar || '';
+            
+            const el = getEl('status-indicator');
+            if(el) el.classList.replace('text-gray-500', 'text-green-500');
+        }
+
+        function initializeRealtime() {
+            const { onSnapshot } = window.firebaseModules;
+            const roomsCol = getPublicCollection('rooms');
+            if(roomUnsubscribe) roomUnsubscribe();
+            roomUnsubscribe = onSnapshot(roomsCol, (snapshot) => {
+                const rooms = [];
+                snapshot.forEach(doc => rooms.push({ id: doc.id, ...doc.data() }));
+                allRoomsCache = rooms;
+                filterRooms(getEl('room-search').value);
+            }, (err) => console.error("Rooms listen error", err));
+
+            const profilesCol = getPublicCollection('profiles');
+            if(profileUnsubscribe) profileUnsubscribe();
+            profileUnsubscribe = onSnapshot(profilesCol, (snapshot) => {
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    profileCache[data.id] = data;
+                    updateUserInUI(data);
+                    if(currentUser && data.id === currentUser.uid) updateMyProfileUI(data);
+                });
+                renderUserList();
+            }, (err) => console.error("Profiles listen error", err));
+        }
+
+        function filterRooms(searchText) {
+            const now = Date.now();
+            const filtered = allRoomsCache.filter(r => {
+                if (r.expires_at && r.expires_at < now) return false;
+                if (!searchText) return true;
+                return r.name.toLowerCase().includes(searchText.toLowerCase());
+            });
+            
+            filtered.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+            renderRooms(filtered);
+            renderMyRooms(); 
+        }
+        
+        function clearSearch() {
+            const inp = getEl('room-search');
+            inp.value = '';
+            filterRooms('');
+            inp.focus();
+        }
+
+        function renderRooms(rooms) {
+            const grid = getEl('room-grid');
+            grid.innerHTML = '';
+            if(rooms.length) {
+                rooms.forEach(r => grid.appendChild(createRoomCard(r)));
+            } else {
+                grid.innerHTML = `<div class="col-span-full text-center text-gray-500 py-10 opacity-50 font-mono">No rooms found.<br>Adjust filters or create one.</div>`;
+            }
+        }
+
+        function renderMyRooms() {
+            const list = getEl('my-rooms-list');
+            list.innerHTML = '';
+            const now = Date.now();
+            
+            const myRooms = allRoomsCache.filter(r => 
+                r.created_by === currentUser.uid && 
+                (!r.expires_at || r.expires_at > now)
+            );
+
+            if (myRooms.length === 0) {
+                list.innerHTML = `<div class="text-gray-600 text-xs p-2 italic">No active rooms</div>`;
+                return;
+            }
+
+            myRooms.forEach(r => {
+                const div = document.createElement('div');
+                div.className = 'p-2 hover:bg-[#27272a] cursor-pointer flex items-center justify-between rounded-lg transition mb-1 group';
+                const timeRemaining = getTimeRemaining(r.expires_at);
+                
+                div.innerHTML = `
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <i class="fas fa-hashtag text-amber-600 text-xs"></i>
+                        <div class="truncate text-sm text-gray-300 font-medium">${r.name}</div>
+                    </div>
+                    <div class="text-[10px] text-gray-600 font-mono">${timeRemaining}</div>
+                `;
+                div.onclick = () => openRoom(r.id, r.name, r.password_hash, r);
+                list.appendChild(div);
+            });
+        }
+
+        function createRoomCard(r) {
+            const div = document.createElement('div');
+            const isOwner = r.created_by === currentUser.uid;
+            div.className = 'p-4 bg-[#27272a] border border-[#3f3f46] hover:border-amber-500 cursor-pointer rounded-lg transition flex flex-col justify-between h-32 shadow-sm relative group';
+            
+            const lockHtml = r.password_hash ? `<i class="fas fa-lock text-yellow-400" title="Locked room"></i>` : '';
+            const deleteButtonHtml = isOwner ? 
+                `<button onclick="event.stopPropagation(); deleteRoom('${r.id}')" class="text-red-500 hover:text-red-300 transition p-1 rounded-full bg-[#18181b] hover:bg-red-900/20 z-10" title="Delete Room"><i class="fas fa-trash-alt text-xs"></i></button>` : '';
+
+            const timeStr = getTimeRemaining(r.expires_at);
+
+            div.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div class="font-bold text-amber-400 text-lg truncate pr-2 w-full"># ${r.name}</div>
+                    ${lockHtml}
+                </div>
+                <div class="flex flex-col gap-1 mt-auto">
+                    <div class="text-[10px] text-gray-500 font-mono flex items-center gap-1">
+                        <i class="far fa-clock"></i> Ends in: <span class="expires-timer" data-expires="${r.expires_at}">${timeStr}</span>
+                    </div>
+                    <div class="flex justify-between items-end mt-1">
+                        <div class="text-[10px] text-gray-500 bg-[#18181b] px-2 py-1 rounded font-mono border border-gray-800">${isOwner ? 'OWNER' : 'PUBLIC'}</div>
+                        ${deleteButtonHtml}
+                    </div>
+                </div>
+            `;
+            div.onclick = () => openRoom(r.id, r.name, r.password_hash, r);
+            return div;
+        }
+
+        function getTimeRemaining(expiresAt) {
+            if (!expiresAt) return "∞";
+            const now = Date.now();
+            const diff = expiresAt - now;
+            if (diff <= 0) return "Expired";
+            const hrs = Math.floor(diff / (1000 * 60 * 60));
+            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            if(hrs > 0) return `${hrs}h ${mins}m`;
+            return `${mins}m`;
+        }
+
+        function updateTimers() {
+            document.querySelectorAll('.expires-timer').forEach(el => {
+                const exp = parseInt(el.dataset.expires);
+                if(exp) el.textContent = getTimeRemaining(exp);
+            });
+            if(currentRoomData) {
+                const headerTimer = getEl('chat-header-timer');
+                if(headerTimer) headerTimer.textContent = "Ends in: " + getTimeRemaining(currentRoomData.expires_at);
+                
+                if (currentRoomData.expires_at && Date.now() > currentRoomData.expires_at) {
+                    showCustomAlert("This room has expired.", "Session Ended");
+                    goBack();
+                }
+            }
+            filterRooms(getEl('room-search').value);
+        }
+
+        function renderUserList() {
+            const list = getEl('user-list');
+            list.innerHTML = '';
+            Object.values(profileCache).forEach(u => {
+                if(u.id === currentUser.uid) return;
+                const div = document.createElement('div');
+                div.className = 'p-2 hover:bg-[#27272a] cursor-pointer flex items-center gap-3 rounded-lg transition mb-1';
+                div.innerHTML = `
+                    <div class="relative flex-shrink-0"><img src="${u.avatar}" onerror="this.src='https://api.dicebear.com/9.x/bottts-neutral/svg?seed=fallback'" class="w-8 h-8 rounded-full bg-gray-700 object-cover"><div class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[#18181b] ${u.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}"></div></div>
+                    <div class="min-w-0 overflow-hidden">
+                        <div class="text-sm font-bold text-gray-200 truncate">${u.username}</div>
+                        ${u.alias ? `<div class="text-[10px] text-gray-500 truncate">@${u.alias}</div>` : ''}
+                    </div>
+                `;
+                div.onclick = () => startDM(u);
+                list.appendChild(div);
+            });
+        }
+
+        function updateUserInUI(user) {
+             // If username/avatar changes, live update chat
+             const nameEls = document.querySelectorAll(`.username-display-${user.id}`);
+             nameEls.forEach(el => el.textContent = user.username);
+             const imgEls = document.querySelectorAll(`.avatar-display-${user.id}`);
+             imgEls.forEach(el => el.src = user.avatar);
+        }
+
+        async function openRoom(id, name, password_hash, roomData) {
+            if(password_hash) {
+                showCustomPrompt('This room is encrypted. Enter passphrase:', async (input) => {
+                    if(input === null) return;
+                    const hashed = await sha256Hex(input);
+                    if(hashed !== password_hash) {
+                        showCustomAlert('Access Denied: Invalid Passphrase.', 'Security Alert');
+                        return;
+                    }
+                    enterRoom(id, name, roomData);
+                }, 'Secure Room', '', true);
+            } else {
+                enterRoom(id, name, roomData);
+            }
+        }
+
+        function enterRoom(id, name, roomData) {
+            currentRoomId = id;
+            currentRoomData = roomData;
+            getEl('chat-header-name').textContent = name;
+            
+            const timerEl = getEl('chat-header-timer');
+            timerEl.textContent = roomData && roomData.expires_at ? "Ends in: " + getTimeRemaining(roomData.expires_at) : "";
+
+            // 2. INVITE LINK MODAL TRIGGER
+            const inviteContainer = getEl('header-actions');
+            inviteContainer.innerHTML = `<div class="flex gap-4 text-gray-500 text-lg"><i class="fas fa-search cursor-pointer hidden"></i></div>`; 
+            
+            if (currentUser && roomData.created_by === currentUser.uid) {
+                const btn = document.createElement('button');
+                btn.className = "text-amber-500 hover:text-white transition p-1";
+                btn.title = "Share Invite Link";
+                btn.innerHTML = `<i class="fas fa-share-alt"></i>`;
+                btn.onclick = () => openInviteModal(id);
+                inviteContainer.prepend(btn);
+            }
+
+            switchPanel('chat-interface');
+            listenToTyping(id); 
+            
+            setTimeout(() => {
+                const inp = getEl('msg-inp');
+                if(inp) inp.focus();
+            }, 100);
+
+            const box = getEl('msg-box');
+            box.innerHTML = '<div class="flex flex-col items-center justify-center mt-20 gap-3"><i class="fas fa-circle-notch fa-spin text-amber-500 text-3xl"></i><span class="text-xs font-mono text-amber-500/50">CONNECTING TO FREQUENCY...</span></div>';
+
+            const { onSnapshot, query, where } = window.firebaseModules;
+            const msgsCol = getPublicCollection('messages');
+            const q = query(msgsCol, where('room_id', '==', id));
+
+            if(messageUnsubscribe) messageUnsubscribe();
+            
+            messageUnsubscribe = onSnapshot(q, (snapshot) => {
+                const messages = [];
+                snapshot.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
+                
+                messages.sort((a, b) => {
+                    const tA = new Date(a.created_at).getTime();
+                    const tB = new Date(b.created_at).getTime();
+                    return tA - tB;
+                });
+
+                box.innerHTML = '';
+                if(messages.length) {
+                    messages.forEach(m => renderMessage(m));
+                    box.scrollTop = box.scrollHeight;
+                } else {
+                    box.innerHTML = '<div id="empty-msg" class="flex flex-col items-center justify-center h-full text-gray-600 pb-20"><i class="fas fa-satellite-dish text-4xl mb-4 opacity-20"></i><p class="text-sm font-mono">Room is quiet.</p></div>';
+                }
+            }, (err) => {
+                console.error("Message Error", err);
+            });
+        }
+
+        function renderMessage(m, scroll = false, isOptimistic = false) {
+            const box = getEl('msg-box');
+            if(document.getElementById(`msg-${m.id}`)) return;
+
+            const isMe = m.sender_id === currentUser.uid;
+            let profile = profileCache[m.sender_id];
+            
+            if(!profile) {
+                const shortId = m.sender_id ? m.sender_id.slice(0,4) : '????';
+                profile = { id: m.sender_id, username: `Anon ${shortId}`, avatar: `https://api.dicebear.com/9.x/bottts-neutral/svg?seed=${m.sender_id}` };
+                
+                const { doc, getDoc } = window.firebaseModules;
+                getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'profiles', m.sender_id)).then(snap => {
+                    if(snap.exists()) {
+                        const d = snap.data();
+                        profileCache[snap.id] = d;
+                        updateUserInUI(d);
+                    }
+                });
+            }
+
+            let processedText = m.text;
+            const mentionRegex = /@(\w+)/g; 
+            processedText = processedText.replace(mentionRegex, (match, username) => {
+                const isValidUser = Object.values(profileCache).some(u => u.username.toLowerCase() === username.toLowerCase());
+                if(isValidUser) {
+                     return `<span class="mention">${match}</span>`;
+                }
+                return `<span class="text-amber-500 font-semibold">${match}</span>`;
+            });
+
+            // 3. LAYOUT UPDATE (Stuck Avatar/Bubble)
+            // "Theirs": Avatar Bottom-Left, Username inside bubble top.
+            // "Mine": Just bubble, aligned right.
+
+            const div = document.createElement('div');
+            div.id = `msg-${m.id}`;
+            div.className = `msg-row ${isMe ? 'mine' : 'theirs'} ${isOptimistic ? 'msg-pending' : ''}`;
+            
+            if (!isMe) {
+                div.innerHTML = `
+                    <img src="${profile.avatar}" class="avatar-display-${m.sender_id} w-8 h-8 rounded-full border border-gray-700 bg-black object-cover mb-1 cursor-pointer" onclick="startDM({id: '${m.sender_id}', username: '${profile.username}', avatar: '${profile.avatar}'})">
+                    <div class="msg-bubble theirs group">
+                        <div class="username-display-${m.sender_id} text-xs text-amber-500 font-bold mb-0.5 cursor-pointer hover:underline" onclick="startDM({id: '${m.sender_id}', username: '${profile.username}', avatar: '${profile.avatar}'})">${profile.username}</div>
+                        <div class="break-words">${processedText}</div>
+                        <div class="text-[9px] opacity-40 text-right mt-1 font-mono select-none">${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                    </div>
+                `;
+            } else {
+                div.innerHTML = `
+                    <div class="msg-bubble mine group">
+                        <div class="break-words">${processedText}</div>
+                        <div class="text-[9px] opacity-40 text-right mt-1 font-mono select-none">${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                        ${!isOptimistic ? `<div class="msg-actions"><button onclick="deleteMessage('${m.id}')" class="bg-[#09090b] rounded-full w-8 h-8 flex items-center justify-center text-red-500 border border-red-900 shadow-lg hover:bg-red-900 hover:text-white transition"><i class="fas fa-trash-alt"></i></button></div>` : ''}
+                    </div>
+                `;
+            }
+            
+            box.appendChild(div);
+        }
+
+        function handleChatInput(e) {
+            const input = e.target;
+            const val = input.value;
+            const cursorPos = input.selectionStart;
+            const textBeforeCursor = val.substring(0, cursorPos);
+            const words = textBeforeCursor.split(/\s+/);
+            const currentWord = words[words.length - 1];
+
+            if(currentWord.startsWith('@')) {
+                const queryStr = currentWord.substring(1).toLowerCase();
+                showMentionDropdown(queryStr);
+            } else {
+                hideMentionDropdown();
+            }
+        }
+
+        function handleChatKeydown(e) {
+            const dropdown = getEl('mention-dropdown');
+            if(dropdown.style.display === 'block') {
+                if(e.key === 'Enter' || e.key === 'Tab') {
+                    e.preventDefault();
+                    const first = dropdown.querySelector('.mention-item');
+                    if(first) insertMention(first.dataset.name);
+                }
+                if(e.key === 'Escape') hideMentionDropdown();
+            }
+        }
+
+        function showMentionDropdown(queryStr) {
+            const dropdown = getEl('mention-dropdown');
+            dropdown.innerHTML = '';
+            const matches = Object.values(profileCache).filter(u => {
+                if(u.id === currentUser.uid) return false;
+                return u.username.toLowerCase().includes(queryStr);
+            });
+
+            if(matches.length === 0) {
+                hideMentionDropdown();
+                return;
+            }
+
+            matches.forEach(u => {
+                const div = document.createElement('div');
+                div.className = 'mention-item';
+                div.dataset.name = u.username; 
+                div.onclick = () => insertMention(u.username);
+                div.innerHTML = `
+                    <img src="${u.avatar}" class="w-5 h-5 rounded-full">
+                    <span>${u.username}</span>
+                `;
+                dropdown.appendChild(div);
+            });
+            dropdown.style.display = 'block';
+        }
+
+        function hideMentionDropdown() {
+            getEl('mention-dropdown').style.display = 'none';
+        }
+
+        function insertMention(name) {
+            const input = getEl('msg-inp');
+            const val = input.value;
+            const cursorPos = input.selectionStart;
+            const textBefore = val.substring(0, cursorPos);
+            const textAfter = val.substring(cursorPos);
+            const lastAt = textBefore.lastIndexOf('@');
+            const newText = textBefore.substring(0, lastAt) + `@${name} ` + textAfter;
+            
+            input.value = newText;
+            input.focus();
+            hideMentionDropdown();
+        }
+
+        function handleTypingInput() {
+            const now = Date.now();
+            if (now - lastTypingTime > TYPING_THROTTLE) {
+                lastTypingTime = now;
+                updateTypingStatus(true);
+            }
+        }
+
+        async function updateTypingStatus(isTyping) {
+            if(!currentRoomId || !currentUser) return;
+            const { doc, setDoc, deleteDoc, serverTimestamp } = window.firebaseModules;
+            const typingRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId, 'typing', currentUser.uid);
+            
+            if(isTyping) {
+                const myProfile = profileCache[currentUser.uid];
+                await setDoc(typingRef, {
+                    username: myProfile?.username || 'Anon',
+                    updated_at: serverTimestamp()
+                });
+            } else {
+                await deleteDoc(typingRef);
+            }
+        }
+
+        function listenToTyping(roomId) {
+            if(typingUnsubscribe) typingUnsubscribe();
+            
+            const { collection, onSnapshot, query } = window.firebaseModules;
+            const typingCol = collection(db, 'artifacts', appId, 'public', 'data', 'rooms', roomId, 'typing');
+            
+            typingUnsubscribe = onSnapshot(typingCol, (snapshot) => {
+                const now = Date.now();
+                const typers = [];
+                
+                snapshot.forEach(doc => {
+                    if(doc.id === currentUser.uid) return; 
+                    const data = doc.data();
+                    const timestamp = data.updated_at ? data.updated_at.toMillis() : now;
+                    if (now - timestamp < 10000) {
+                        typers.push(data.username);
+                    }
+                });
+                
+                const indicator = getEl('typing-indicator');
+                if(typers.length > 0) {
+                    const text = typers.length === 1 ? `${typers[0]} is typing...` :
+                                 typers.length === 2 ? `${typers[0]} and ${typers[1]} are typing...` :
+                                 `Several people are typing...`;
+                    indicator.innerHTML = `<span class="typing-dot">•</span> ${text}`;
+                    indicator.classList.add('active');
+                } else {
+                    indicator.classList.remove('active');
+                }
+            });
+        }
+
+        async function sendMsg() {
+            const inp = getEl('msg-inp');
+            const text = inp.value.trim();
+            if(!text || !currentRoomId) return;
+            
+            if (currentRoomData && currentRoomData.expires_at && Date.now() > currentRoomData.expires_at) {
+                showCustomAlert("Room has expired. Cannot transmit.", "Error");
+                return;
+            }
+            
+            updateTypingStatus(false);
+
+            const mentionUids = [];
+            const mentionRegex = /@(\w+)/g;
+            let match;
+            while ((match = mentionRegex.exec(text)) !== null) {
+                const username = match[1].toLowerCase();
+                const user = Object.values(profileCache).find(u => u.username.toLowerCase() === username);
+                if(user) mentionUids.push(user.id);
+            }
+            
+            const tempId = 'temp-' + Date.now();
+            const nowIso = new Date().toISOString();
+            renderMessage({ id: tempId, room_id: currentRoomId, text: text, sender_id: currentUser.uid, created_at: nowIso }, true, true);
+            getEl('msg-box').scrollTop = getEl('msg-box').scrollHeight;
+            
+            inp.value = '';
+            inp.focus();
+            hideMentionDropdown();
+            const empty = getEl('empty-msg'); if(empty) empty.remove();
+
+            const { addDoc } = window.firebaseModules;
+            const msgsCol = getPublicCollection('messages');
+            try {
+                await addDoc(msgsCol, {
+                    room_id: currentRoomId,
+                    text: text,
+                    sender_id: currentUser.uid,
+                    created_at: nowIso,
+                    mentions: [...new Set(mentionUids)] 
+                });
+                const tempEl = document.getElementById(`msg-${tempId}`);
+                if(tempEl) tempEl.remove(); 
+            } catch(err) {
+                const el = document.getElementById(`msg-${tempId}`);
+                if(el) { el.style.border = "1px solid red"; el.title = err.message; }
+                showCustomAlert("Failed: " + err.message, 'Error');
+            }
+        }
+
+        async function deleteMessage(id) {
+            showCustomConfirm("Delete this message?", async (confirmed) => {
+                if (!confirmed) return;
+                const { deleteDoc, doc } = window.firebaseModules;
+                try {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'messages', id));
+                } catch(e) {
+                    showCustomAlert("Delete Failed: " + e.message, 'Error');
+                }
+            }, 'Confirm Deletion', 'Delete');
+        }
+
+        async function createRoom() {
+            showCustomPrompt("Enter Room Name:", async (name) => {
+                if(!name) return;
+                
+                const { getDocs, query, where, addDoc } = window.firebaseModules;
+                const roomsCol = getPublicCollection('rooms');
+                
+                const nameLower = name.trim().toLowerCase();
+                const q = query(roomsCol, where('name_lower', '==', nameLower));
+                const existing = await getDocs(q);
+                
+                if (!existing.empty) {
+                    showCustomAlert("A room with this name already exists. Choose another name.", "Duplicate Error");
+                    return;
+                }
+
+                showCustomPrompt("Set Password (optional):", async (pass) => {
+                    let password_hash = null;
+                    if(pass && pass.length > 0) {
+                        password_hash = await sha256Hex(pass);
+                    }
+                    
+                    try {
+                        const expiresAt = Date.now() + (24 * 60 * 60 * 1000);
+                        
+                        await addDoc(roomsCol, {
+                            name: name.trim(),
+                            name_lower: nameLower, 
+                            created_by: currentUser.uid,
+                            password_hash,
+                            created_at: Date.now(),
+                            expires_at: expiresAt
+                        });
+                        showCustomAlert('Room created. Expires in 24h.', 'Success');
+                    } catch(e) {
+                        showCustomAlert('Create failed: ' + e.message, 'Error');
+                    }
+                }, "Security Settings", "Leave empty for public");
+            }, "New Room", "e.g. General Ops");
+        }
+
+        async function deleteRoom(id) {
+            showCustomConfirm("Terminate this room?", async (confirmed) => {
+                if (confirmed) {
+                    const { deleteDoc, doc } = window.firebaseModules;
+                    try {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', id));
+                        if (currentRoomId === id) goBack();
+                    } catch(e) {
+                        showCustomAlert("Failed: " + e.message, 'Error');
+                    }
+                }
+            }, 'Confirm Termination', 'Terminate', 'Cancel');
+        }
+
+        async function startDM(user) {
+            const ids = [currentUser.uid, user.id].sort();
+            const dmId = `${ids[0]}_${ids[1]}`;
+            const dmName = `@${user.username}`;
+
+            const { doc, getDoc, setDoc } = window.firebaseModules;
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', dmId);
+            
+            const snap = await getDoc(roomRef);
+            if(!snap.exists()) {
+                await setDoc(roomRef, {
+                    id: dmId, 
+                    name: dmName,
+                    created_by: currentUser.uid,
+                    created_at: Date.now(),
+                    is_dm: true,
+                    expires_at: Date.now() + (365 * 24 * 60 * 60 * 1000) 
+                });
+            }
+            openRoom(dmId, dmName, null, { expires_at: Date.now() + (365 * 24 * 60 * 60 * 1000)});
+        }
+
+        async function updateProfile() {
+            const { updateDoc, doc } = window.firebaseModules;
+            // 1. REMOVED AVATAR SELECTION LOGIC
+            // Avatar updates are no longer supported manually to simplify UI.
+            // User keeps existing avatar. If new user, it is auto-generated in handleSignup.
+            const updates = { 
+                username: getEl('edit-username').value, 
+                username_lower: getEl('edit-username').value.toLowerCase(),
+                alias: getEl('edit-alias').value,
+                bio: getEl('edit-bio').value, 
+                updated_at: new Date().toISOString() 
+            };
+            try {
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'profiles', currentUser.uid), updates);
+                showCustomAlert("Identity Updated!", 'Success');
+                closeProfileModal();
+            } catch(e) {
+                showCustomAlert("Error: " + e.message, 'Update Failed');
+            }
+        }
+
+        function setInlineError(id, msg) {
+            getEl(id).textContent = msg;
+        }
+        function clearInlineErrors() {
+            document.querySelectorAll('.inline-error').forEach(el => el.textContent = '');
+        }
+
+        async function handleLogin() {
+            clearInlineErrors();
+            const btn = getEl('btn-login'); 
+            const originalText = btn.textContent;
+            const inputVal = getEl('l-email').value.trim();
+            const password = getEl('l-pass').value;
+            
+            if(!inputVal || !password) {
+                setInlineError('login-error-email', "Credentials missing.");
+                return;
+            }
+
+            btn.textContent = "CONNECTING...";
+            btn.disabled = true;
+
+            const { signInWithEmailAndPassword, getDocs, query, where } = window.firebaseModules;
+            
+            let emailToUse = inputVal;
+            
+            if (!inputVal.includes('@')) {
+                try {
+                    const profilesCol = getPublicCollection('profiles');
+                    const q = query(profilesCol, where('username', '==', inputVal));
+                    const snap = await getDocs(q);
+                    
+                    if (snap.empty) {
+                        setInlineError('login-error-email', "Username not found.");
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                        return;
+                    }
+                    emailToUse = snap.docs[0].data().email;
+                } catch(err) {
+                    console.error(err);
+                    showCustomAlert("Error verifying username.", "System Error");
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    return;
+                }
+            }
+
+            try {
+                await signInWithEmailAndPassword(auth, emailToUse, password);
+            } catch(e) {
+                btn.textContent = originalText;
+                btn.disabled = false;
+                
+                if(e.code === 'auth/invalid-email' || e.code === 'auth/user-not-found') {
+                    setInlineError('login-error-email', "Invalid or unknown user.");
+                } else if(e.code === 'auth/wrong-password') {
+                    setInlineError('login-error-pass', "Invalid passphrase.");
+                } else {
+                    showCustomAlert(e.message, 'Login Failed');
+                }
+            }
+        }
+
+        async function handleSignup() {
+            clearInlineErrors();
+            const btn = getEl('btn-signup'); 
+            const originalText = btn.textContent;
+
+            btn.textContent = "PROCESSING...";
+            btn.disabled = true;
+
+            const { createUserWithEmailAndPassword, setDoc, doc } = window.firebaseModules;
+            const email = getEl('s-email').value;
+            const password = getEl('s-pass').value;
+            const username = getEl('s-username').value;
+            const alias = getEl('s-alias').value;
+
+            if(!username) {
+                setInlineError('signup-error-user', "Username required.");
+                btn.textContent = originalText;
+                btn.disabled = false;
+                return;
+            }
+
+            try {
+                const cred = await createUserWithEmailAndPassword(auth, email, password);
+                const avatar = `https://api.dicebear.com/9.x/bottts-neutral/svg?seed=${cred.user.uid}`;
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'profiles', cred.user.uid), {
+                    id: cred.user.uid,
+                    username: username,
+                    username_lower: username.toLowerCase(), 
+                    alias: alias,
+                    email: email,
+                    avatar: avatar,
+                    status: 'online',
+                    lat: null, lon: null
+                });
+
+                showCustomAlert("Identity Created. Logging in...", 'Success');
+            } catch(e) {
+                btn.textContent = originalText;
+                btn.disabled = false;
+                
+                if(e.code === 'auth/email-already-in-use') setInlineError('signup-error-email', "Email already registered.");
+                else if(e.code === 'auth/weak-password') setInlineError('signup-error-pass', "Password too weak.");
+                else showCustomAlert(e.message, 'Registration Failed');
+            }
+        }
+        
+        function togglePassword(inputId, iconId) {
+            const input = getEl(inputId);
+            const icon = getEl(iconId);
+            if(input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
+        async function handleForgotPassword() {
+            const email = getEl('l-email').value;
+            if(!email || !email.includes('@')) {
+                setInlineError('login-error-email', "Enter a valid email first.");
+                return;
+            }
+            const { sendPasswordResetEmail } = window.firebaseModules;
+            try {
+                await sendPasswordResetEmail(auth, email);
+                showCustomAlert(`Reset link sent to ${email}. Check your inbox.`, "Link Sent");
+            } catch(e) {
+                showCustomAlert(e.message, "Error");
+            }
+        }
+
+        function handleLogout() { window.firebaseModules.signOut(auth); window.location.reload(); }
+
+        function haversineKm(lat1, lon1, lat2, lon2) {
+            const R = 6371; 
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+        }
+
+        function findNearby() {
+            if(!currentUser || !profileCache[currentUser.uid]) return [];
+            const me = profileCache[currentUser.uid];
+            if(!me.lat || !me.lon) {
+                showCustomAlert('Location data unavailable. Enable permissions.', 'System Notice');
+                return [];
+            }
+            const nearby = [];
+            Object.values(profileCache).forEach(u => {
+                if(!u.lat || !u.lon || u.id === currentUser.uid) return;
+                const dist = haversineKm(me.lat, me.lon, u.lat, u.lon);
+                if(dist <= NEARBY_RADIUS_KM) nearby.push({...u, distance_km: +(dist.toFixed(2))});
+            });
+            return nearby.sort((a,b) => a.distance_km - b.distance_km);
+        }
+
+        function showNearby() {
+            const list = findNearby();
+            const existing = document.getElementById('nearby-modal');
+            if(existing) existing.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'nearby-modal';
+            modal.className = 'nearby-modal';
+            modal.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:12px;">
+                <div style="font-weight:700;font-size:1.25rem;">NEARBY USERS</div>
+                <div><button onclick="document.getElementById('nearby-modal')?.remove()" class="btn" style="width:auto;padding:6px 10px;background:var(--input-bg);color:var(--text);border-radius:8px">Close</button></div>
+            </div>
+            <div id="nearby-list" style="max-height: calc(100% - 60px); overflow-y: auto;">
+                ${list.length ? '' : `<div class="text-gray-500 text-center py-8">No nearby users found within ${NEARBY_RADIUS_KM} km.</div>`}
+            </div>`;
+            document.body.appendChild(modal);
+
+            const container = document.getElementById('nearby-list');
+            list.forEach(u => {
+                const item = document.createElement('div');
+                item.className = 'nearby-item';
+                item.onclick = () => { startDM(u); modal.remove(); };
+                item.innerHTML = `<img src="${u.avatar}" onerror="this.src='https://api.dicebear.com/9.x/bottts-neutral/svg?seed=err'" class="w-10 h-10 rounded-lg object-cover border border-gray-700 flex-shrink-0">
+                    <div style="flex:1">
+                      <div style="font-weight:700">${u.username} <span style="color:var(--text-muted);font-size:12px">• ${u.distance_km} km</span></div>
+                      <div style="font-size:12px;color:var(--text-muted)">${u.bio ? u.bio.slice(0,80) : 'No bio set.'}</div>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                      <button class="btn" style="width:auto;padding:6px 10px;background:var(--primary);color:black;">Message</button>
+                    </div>`;
+                container.appendChild(item);
+            });
+        }
+
+        function showView(name) {
+            ['auth-view', 'app-view'].forEach(id => getEl(id).classList.add('hidden'));
+            getEl(name + '-view').classList.remove('hidden');
+        }
+        function toggleSidebar(show) {
+            const sb = getEl('sidebar'), ov = getEl('overlay');
+            show ? (sb.classList.add('open'), ov.classList.add('visible')) : (sb.classList.remove('open'), ov.classList.remove('visible'));
+        }
+        function switchPanel(panelId) {
+            if (window.innerWidth < 768) toggleSidebar(false);
+            ['room-list-panel', 'chat-interface'].forEach(p => getEl(p).classList.add('hidden'));
+            const panel = getEl(panelId);
+            if(panel) panel.classList.remove('hidden');
+            
+            if(panelId === 'chat-interface') getEl('msg-box').scrollTop = getEl('msg-box').scrollHeight;
+        }
+        function goBack() {
+            if(currentRoomId) { 
+                updateTypingStatus(false);
+                if(typingUnsubscribe) typingUnsubscribe();
+                
+                currentRoomId = null; 
+                currentRoomData = null;
+                if(messageUnsubscribe) messageUnsubscribe(); 
+            }
+            switchPanel('room-list-panel');
+        }
+        
+        function openProfileModal() {
+            getEl('profile-overlay').classList.add('visible');
+            if (window.innerWidth < 768) toggleSidebar(false);
+        }
+        function closeProfileModal() {
+            getEl('profile-overlay').classList.remove('visible');
+        }
+        function openSettingsModal() {
+            getEl('settings-overlay').classList.add('visible');
+            if (window.innerWidth < 768) toggleSidebar(false);
+        }
+        function closeSettingsModal() {
+            getEl('settings-overlay').classList.remove('visible');
+        }
+        
+        function openInviteModal(roomId) {
+            getEl('invite-overlay').classList.add('visible');
+            const link = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
+            getEl('invite-link-text').value = link;
+        }
+        function closeInviteModal() {
+            getEl('invite-overlay').classList.remove('visible');
+        }
+        function copyInviteLink() {
+            const input = getEl('invite-link-text');
+            input.select();
+            input.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(input.value).then(() => {
+                showCustomAlert("Link copied to clipboard!", "Success");
+                closeInviteModal();
+            }).catch(err => {
+                console.error(err);
+                showCustomAlert("Failed to copy automatically.", "Error");
+            });
+        }
+
+        // 2. THEME DROPDOWN LOGIC
+        function setTheme(mode) {
+            const html = document.documentElement;
+            if (mode === 'light') {
+                html.classList.add('light');
+                localStorage.setItem('uniworld-theme', 'light');
+            } else {
+                html.classList.remove('light');
+                localStorage.setItem('uniworld-theme', 'dark');
+            }
+        }
+
+        function resetModal() {
+            getEl('modal-input').classList.add('hidden');
+            getEl('modal-input').value = '';
+            getEl('modal-cancel-btn').classList.add('hidden');
+            getEl('custom-modal-backdrop').classList.add('hidden');
+        }
+        function showCustomAlert(message, title = 'System Alert') {
+            resetModal();
+            getEl('modal-title').textContent = title;
+            getEl('modal-message').textContent = message;
+            getEl('modal-ok-btn').textContent = 'OK';
+            getEl('custom-modal-backdrop').classList.remove('hidden');
+            confirmCallback = null;
+        }
+        function showCustomConfirm(message, callback, title = 'Confirm', okText = 'Yes', cancelText = 'Cancel') {
+            resetModal();
+            getEl('modal-title').textContent = title;
+            getEl('modal-message').textContent = message;
+            getEl('modal-cancel-btn').classList.remove('hidden');
+            getEl('modal-ok-btn').textContent = okText;
+            getEl('modal-cancel-btn').textContent = cancelText;
+            getEl('custom-modal-backdrop').classList.remove('hidden');
+            confirmCallback = callback;
+        }
+        function showCustomPrompt(message, callback, title = 'Input', placeholder = '', isPassword = false) {
+            resetModal();
+            getEl('modal-title').textContent = title;
+            getEl('modal-message').textContent = message;
+            getEl('modal-cancel-btn').classList.remove('hidden');
+            getEl('modal-ok-btn').textContent = 'Submit';
+            const input = getEl('modal-input');
+            input.classList.remove('hidden');
+            input.type = isPassword ? 'password' : 'text';
+            input.placeholder = placeholder;
+            getEl('custom-modal-backdrop').classList.remove('hidden');
+            setTimeout(() => input.focus(), 50);
+            confirmCallback = (result) => { result === true ? callback(input.value) : callback(null); };
+        }
+        let confirmCallback = null;
+        function closeModal(result) {
+            getEl('custom-modal-backdrop').classList.add('hidden');
+            if (confirmCallback) { 
+                const cb = confirmCallback;
+                confirmCallback = null; 
+                cb(result); 
+            }
+        }
+        function handleModalKey(e) { if(e.key === 'Enter') closeModal(true); }
+    </script>
+</head>
+<body>
+    <!-- CUSTOM ALERT MODAL -->
+    <div id="custom-modal-backdrop" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center hidden" onclick="closeModal(false)">
+        <div id="custom-modal-content" class="bg-[#18181b] border border-[#27272a] rounded-xl p-6 max-w-sm mx-4 w-full shadow-2xl transform transition-all" onclick="event.stopPropagation()">
+            <h3 id="modal-title" class="text-xl font-bold text-white mb-3">Alert</h3>
+            <p id="modal-message" class="text-gray-300 mb-4 text-sm"></p>
+            <input id="modal-input" type="text" class="input-field hidden mb-4" onkeypress="handleModalKey(event)">
+            <div class="flex justify-end gap-3">
+                <button id="modal-cancel-btn" class="hidden px-4 py-2 text-sm font-semibold rounded-lg text-gray-400 hover:bg-[#27272a] transition" onclick="closeModal(false)">Cancel</button>
+                <button id="modal-ok-btn" class="px-4 py-2 text-sm font-semibold rounded-lg bg-amber-500 text-black hover:bg-amber-400 transition" onclick="closeModal(true)">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OVERLAY -->
+    <div id="overlay" class="overlay" onclick="toggleSidebar(false)"></div>
+
+    <!-- 4. SETTINGS MODAL (Updated with Theme Select) -->
+    <div id="settings-overlay" class="blur-modal-overlay" onclick="closeSettingsModal()">
+        <div class="modal-card space-y-6" onclick="event.stopPropagation()">
+            <h2 class="text-2xl font-bold text-[var(--text)] text-center">SETTINGS</h2>
+            
+            <div class="space-y-2">
+                <div class="text-xs font-bold text-[var(--text-muted)] ml-1">THEME PREFERENCE</div>
+                <!-- 2. THEME DROPDOWN IMPLEMENTATION -->
+                <select id="theme-select" class="theme-select" onchange="setTheme(this.value)">
+                    <option value="dark">Dark Mode</option>
+                    <option value="light">Light Mode</option>
+                </select>
+            </div>
+            
+            <div class="border-t border-[var(--border)] pt-4">
+                <button onclick="handleLogout()" class="btn bg-[var(--danger)] text-white w-full">SIGN OUT</button>
+            </div>
+            <button onclick="closeSettingsModal()" class="text-[var(--text-muted)] hover:text-[var(--text)] text-sm font-bold w-full text-center mt-2">CLOSE</button>
+        </div>
+    </div>
+
+    <!-- 2. INVITE LINK MODAL -->
+    <div id="invite-overlay" class="blur-modal-overlay" onclick="closeInviteModal()">
+        <div class="modal-card text-center space-y-4" onclick="event.stopPropagation()">
+             <h2 class="text-xl font-bold text-[var(--text)]">INVITE AGENTS</h2>
+             <p class="text-xs text-[var(--text-muted)]">Share this secure link to grant access to this frequency.</p>
+             
+             <input id="invite-link-text" type="text" class="input-field text-center font-mono text-xs" readonly onclick="this.select()">
+             
+             <button onclick="copyInviteLink()" class="btn">COPY LINK</button>
+             <button onclick="closeInviteModal()" class="text-[var(--text-muted)] hover:text-[var(--text)] text-xs font-bold mt-2">CLOSE</button>
+        </div>
+    </div>
+
+    <!-- 4. PROFILE MODAL (Cleaned Up) -->
+    <div id="profile-overlay" class="blur-modal-overlay" onclick="closeProfileModal()">
+        <div class="modal-card relative" onclick="event.stopPropagation()">
+            <button onclick="closeProfileModal()" class="absolute top-4 right-4 text-[var(--text-muted)] hover:text-[var(--text)] p-2"><i class="fas fa-times text-xl"></i></button>
+            <h2 class="text-2xl font-bold text-[var(--text)] mb-6 text-center tracking-wide">EDIT IDENTITY</h2>
+            
+            <div class="flex justify-center mb-6"><div class="relative"><img id="edit-avatar-preview" src="" class="w-16 h-16 rounded-lg border-2 border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.3)]" onerror="this.src='https://api.dicebear.com/9.x/bottts-neutral/svg?seed=fallback'"></div></div>
+            
+            <!-- 1. REMOVED AVATAR GRID/INPUT UI -->
+            
+            <div class="space-y-4">
+                <div><label class="text-xs font-bold text-[var(--text-muted)] ml-1 mb-1 block">ALIAS / NICKNAME</label><input id="edit-alias" type="text" class="input-field" placeholder="@callsign"></div>
+                <div><label class="text-xs font-bold text-[var(--text-muted)] ml-1 mb-1 block">USERNAME</label><input id="edit-username" type="text" class="input-field"></div>
+                <div><label class="text-xs font-bold text-[var(--text-muted)] ml-1 mb-1 block">BIO DATA</label><textarea id="edit-bio" rows="3" class="input-field resize-none"></textarea></div>
+                <button onclick="updateProfile()" class="btn shadow-lg shadow-amber-900/20">SAVE CHANGES</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AUTH -->
+    <div id="auth-view" class="flex items-center justify-center hidden w-full h-full p-4">
+        <div class="glass-card text-center">
+            <h1 class="text-5xl text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 font-black mb-2 tracking-tighter">UNIWORLD</h1>
+            <p class="text-gray-500 text-xs mb-8 font-mono tracking-[0.3em]">FIREBASE EDITION</p>
+            
+            <div id="f-login" class="space-y-4">
+                <div>
+                    <input id="l-email" type="text" class="input-field" placeholder="Access ID (Email or Username)">
+                    <div id="login-error-email" class="inline-error"></div>
+                </div>
+                
+                <div class="input-group">
+                    <input id="l-pass" type="password" class="input-field" placeholder="Passphrase" style="padding-right: 40px;">
+                    <i id="toggle-l-pass" class="fas fa-eye password-toggle" onclick="togglePassword('l-pass', 'toggle-l-pass')"></i>
+                </div>
+                <div id="login-error-pass" class="inline-error"></div>
+
+                <div class="text-right">
+                    <button onclick="handleForgotPassword()" class="text-xs text-amber-500 hover:text-amber-300 hover:underline">Forgot password?</button>
+                </div>
+                <button id="btn-login" onclick="handleLogin()" class="btn">ESTABLISH LINK</button>
+                
+                <div onclick="getEl('f-login').classList.add('hidden'); getEl('f-signup').classList.remove('hidden')" class="auth-toggle-btn">
+                    GENERATE NEW IDENTITY
+                </div>
+            </div>
+
+            <div id="f-signup" class="hidden space-y-4">
+                <div>
+                    <input id="s-username" type="text" class="input-field" placeholder="Username (Required)">
+                    <div id="signup-error-user" class="inline-error"></div>
+                </div>
+                <input id="s-alias" type="text" class="input-field" placeholder="Alias / Nickname (Optional)">
+                
+                <div>
+                    <input id="s-email" type="email" class="input-field" placeholder="Email">
+                    <div id="signup-error-email" class="inline-error"></div>
+                </div>
+                
+                <div class="input-group">
+                    <input id="s-pass" type="password" class="input-field" placeholder="Password" style="padding-right: 40px;">
+                    <i id="toggle-s-pass" class="fas fa-eye password-toggle" onclick="togglePassword('s-pass', 'toggle-s-pass')"></i>
+                </div>
+                <div id="signup-error-pass" class="inline-error"></div>
+
+                <button id="btn-signup" onclick="handleSignup()" class="btn">REGISTER</button>
+                
+                <div onclick="getEl('f-signup').classList.add('hidden'); getEl('f-login').classList.remove('hidden')" class="auth-toggle-btn">
+                    ABORT / BACK TO LOGIN
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- APP -->
+    <div id="app-view" class="hidden h-full w-full">
+        <div class="app-container">
+            <!-- SIDEBAR -->
+            <div id="sidebar" class="sidebar p-4">
+                <div class="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--border)] cursor-pointer active:bg-[var(--input-bg)] p-2 rounded-xl" onclick="openProfileModal()">
+                    <img id="my-avatar" class="w-12 h-12 rounded-xl border-2 border-amber-500 bg-gray-800" onerror="this.src='https://api.dicebear.com/9.x/bottts-neutral/svg?seed=fallback'">
+                    <div class="flex-1 overflow-hidden">
+                        <div class="font-bold text-amber-400 truncate text-lg" id="my-name">Anon User</div>
+                        <div class="text-[10px] font-mono flex items-center gap-2 text-[var(--text-muted)]">
+                            STATUS: <span id="status-indicator" class="text-gray-500">●</span> SECURE
+                        </div>
+                    </div>
+                    <button onclick="event.stopPropagation(); openSettingsModal()" class="text-[var(--text-muted)] hover:text-[var(--text)] p-2"><i class="fas fa-cog"></i></button>
+                </div>
+                <div class="space-y-1 mb-4">
+                    <button onclick="switchPanel('room-list-panel')" class="w-full text-left p-3 text-sm font-bold text-[var(--text)] hover:bg-[var(--input-bg)] rounded-lg flex items-center gap-3"><i class="fas fa-hashtag w-5 text-center text-amber-500"></i> ROOMS</button>
+                    <button onclick="openSettingsModal()" class="w-full text-left p-3 text-sm font-bold text-[var(--text)] hover:bg-[var(--input-bg)] rounded-lg flex items-center gap-3"><i class="fas fa-sliders-h w-5 text-center text-amber-500"></i> SETTINGS</button>
+                </div>
+
+                <div class="mb-4">
+                    <button onclick="showNearby()" class="w-full text-left p-3 text-sm font-bold text-[var(--text)] hover:bg-[var(--input-bg)] rounded-lg flex items-center gap-3">
+                        <i class="fas fa-location-dot w-5 text-center text-amber-500"></i> NEARBY
+                        <span id="radius-display" style="margin-left:auto;color:var(--text-muted);font-size:12px">within 10km</span>
+                    </button>
+                </div>
+
+                <div class="mb-4 flex-1 overflow-hidden flex flex-col min-h-[150px]">
+                    <div class="text-[10px] font-bold text-[var(--text-muted)] mb-2 px-2 tracking-widest font-mono">MY ROOMS</div>
+                    <div id="my-rooms-list" class="overflow-y-auto flex-1 pr-1"></div>
+                </div>
+
+                <div class="text-[10px] font-bold text-[var(--text-muted)] mb-3 px-2 tracking-widest font-mono border-t border-[var(--border)] pt-4">ACTIVE NODES</div>
+                <div id="user-list" class="flex-1 overflow-y-auto pr-1"></div>
+            </div>
+
+            <!-- MAIN -->
+            <div class="main-area">
+                <div class="md:hidden h-16 border-b border-[var(--border)] flex items-center justify-between px-4 bg-[var(--bg)] z-20 flex-shrink-0">
+                    <button onclick="toggleSidebar(true)" class="text-amber-500 text-xl p-2"><i class="fas fa-bars"></i></button>
+                    <span class="font-bold text-xl tracking-tight text-amber-500 font-mono">UNIWORLD</span>
+                    <div class="w-8"></div>
+                </div>
+
+                <div id="room-list-panel" class="p-4 md:p-8 flex-1 overflow-y-auto w-full">
+                    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+                        <div><h2 class="text-2xl md:text-3xl font-black text-[var(--text)]">ROOMS</h2><p class="text-[var(--text-muted)] text-xs md:text-sm mt-1">Select a frequency</p></div>
+                        <button onclick="createRoom()" class="bg-[var(--input-bg)] text-amber-400 px-4 md:px-6 py-2 md:py-3 rounded-lg text-sm font-bold border border-amber-900/30 hover:border-amber-500 shadow-lg">+ NEW</button>
+                    </div>
+                    
+                    <div class="relative mb-6 w-full max-w-md">
+                        <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-[var(--text-muted)]"></i>
+                        <input id="room-search" type="text" class="w-full bg-[var(--panel)] border border-[var(--border)] rounded-full py-3 pl-10 pr-10 text-[var(--text)] focus:border-amber-500 outline-none transition" placeholder="Search rooms...">
+                        <button onclick="clearSearch()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] p-1 rounded-full"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <div id="room-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+                </div>
+
+                <div id="chat-interface" class="absolute inset-0 bg-[var(--bg)] flex flex-col hidden z-30">
+                    <div class="h-16 border-b border-[var(--border)] flex items-center justify-between px-4 bg-[var(--panel)] flex-shrink-0">
+                        <button onclick="goBack()" class="text-[var(--text)] mr-3 p-2 bg-[var(--input-bg)] rounded-lg hover:bg-amber-900/30 border border-[var(--border)]"><i class="fas fa-arrow-left text-lg"></i></button>
+                        <div class="flex flex-col overflow-hidden flex-1">
+                            <div class="font-bold text-lg flex items-center gap-2 truncate"><span class="text-amber-500">#</span> <span id="chat-header-name" class="truncate text-[var(--text)]">Room</span></div>
+                            <div id="chat-header-timer" class="text-[10px] text-amber-600/80 font-mono font-bold uppercase tracking-wider"></div>
+                        </div>
+                        <div id="header-actions"></div>
+                    </div>
+                    
+                    <div id="typing-indicator" class="typing-indicator bg-[var(--panel)] border-b border-[var(--border)]"></div>
+
+                    <div id="msg-box" class="flex-1 overflow-y-auto p-4 w-full"></div>
+                    <div class="p-3 md:p-4 border-t border-[var(--border)] bg-[var(--panel)] flex gap-2 flex-shrink-0 items-center relative">
+                        <div id="mention-dropdown" class="mention-dropdown"></div>
+                        
+                        <button class="text-[var(--text-muted)] hover:text-amber-500 p-2"><i class="fas fa-paperclip"></i></button>
+                        <input id="msg-inp" type="text" class="flex-1 bg-[var(--input-bg)] border-none text-[var(--text)] rounded-lg px-4 py-3 focus:ring-1 focus:ring-amber-500 outline-none transition" placeholder="Encrypting message... (Type @ to mention)" onkeypress="if(event.key==='Enter') sendMsg()">
+                        <button onclick="sendMsg()" class="bg-amber-600 hover:bg-amber-500 text-white w-12 h-12 rounded-lg flex items-center justify-center shadow-lg"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
