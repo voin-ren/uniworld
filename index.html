@@ -37,7 +37,7 @@
             --glass-bg: rgba(255, 255, 255, 0.98);
             --msg-mine: #fbbf24;
             --msg-mine-text: #451a03;
-            --msg-theirs: #ffffff; /* White bubble for theirs in light mode */
+            --msg-theirs: #ffffff;
             --msg-theirs-text: #18181b;
         }
         
@@ -70,23 +70,18 @@
         .sidebar { width: 300px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; height: 100%; flex-shrink: 0; z-index: 40; }
         .main-area { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; height: 100%; overflow: hidden; }
         
-        /* 3. CHAT LAYOUT UPDATES (Sticky Avatar/Bubble) */
         .msg-row { display: flex; margin-bottom: 12px; padding: 0 16px; animation: popIn 0.1s ease-out; width: 100%; }
         .msg-row.mine { justify-content: flex-end; }
-        .msg-row.theirs { justify-content: flex-start; align-items: flex-end; gap: 8px; } /* Align bottom to stick avatar */
+        .msg-row.theirs { justify-content: flex-start; align-items: flex-end; gap: 8px; }
 
         .msg-bubble { padding: 6px 10px; border-radius: 12px; max-width: 75%; position: relative; font-family: sans-serif; line-height: 1.5; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); word-wrap: break-word; min-width: 80px; }
-        
-        /* Bubble Specifics */
         .msg-bubble.mine { background: var(--msg-mine); border: 1px solid var(--primary); color: var(--msg-mine-text); border-bottom-right-radius: 2px; }
         .msg-bubble.theirs { background: var(--msg-theirs); border: 1px solid var(--border); color: var(--msg-theirs-text); border-bottom-left-radius: 2px; }
         .msg-pending { opacity: 0.6; border: 1px dashed #f59e0b; }
         
-        /* Mention Highlight */
         .mention { color: #fcd34d; font-weight: bold; background: rgba(245, 158, 11, 0.15); padding: 0 4px; border-radius: 4px; cursor: pointer; }
         html.light .mention { color: #b45309; background: rgba(245, 158, 11, 0.3); }
 
-        /* Delete Action Hover */
         .msg-actions { position: absolute; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity 0.2s; }
         .msg-row.mine .msg-actions { left: -40px; }
         .msg-row:hover .msg-actions { opacity: 1; }
@@ -102,17 +97,14 @@
         }
         @media (min-width: 769px) { .overlay { display: none; } .msg-bubble { max-width: 60%; } }
 
-        /* Nearby modal */
         .nearby-modal { position: fixed; inset: 12% 12% 12% 12%; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; z-index: 60; overflow:auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
         .nearby-item { display:flex; gap:12px; align-items:center; padding:8px; border-radius:8px; cursor:pointer; }
         .nearby-item:hover { background: rgba(255,255,255,0.05); }
         
-        /* Mention Dropdown */
         .mention-dropdown { position: absolute; bottom: 100%; left: 0; width: 220px; max-height: 150px; overflow-y: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; z-index: 50; box-shadow: 0 -4px 15px rgba(0,0,0,0.5); display: none; }
         .mention-item { padding: 10px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; border-bottom: 1px solid var(--border); color: var(--text); }
         .mention-item:hover, .mention-item.active { background: var(--input-bg); color: var(--primary); }
 
-        /* Password Container */
         .input-group { position: relative; display: flex; align-items: center; }
         .password-toggle { position: absolute; right: 12px; color: var(--text-muted); cursor: pointer; padding: 4px; transition: color 0.2s; }
         .password-toggle:hover { color: var(--primary); }
@@ -122,18 +114,15 @@
         .auth-toggle-btn { cursor: pointer; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-size: 0.85rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); transition: all 0.2s; }
         .auth-toggle-btn:hover { color: var(--primary); text-shadow: 0 0 8px rgba(245,158,11,0.4); }
 
-        /* Typing Indicator */
         .typing-indicator { font-size: 0.75rem; color: var(--text-muted); padding: 0 16px 8px 16px; min-height: 24px; font-style: italic; opacity: 0; transition: opacity 0.3s; }
         .typing-indicator.active { opacity: 1; }
         .typing-dot { display: inline-block; animation: pulse 1.5s infinite; margin-right: 2px; font-weight: bold; color: var(--primary); }
         @keyframes pulse { 0% { opacity: .2; } 50% { opacity: 1; } 100% { opacity: .2; } }
 
-        /* BLUR MODALS */
         .blur-modal-overlay { position: fixed; inset: 0; z-index: 50; backdrop-filter: blur(8px); background-color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
         .blur-modal-overlay.visible { opacity: 1; pointer-events: auto; }
         .modal-card { background: var(--panel); border: 1px solid var(--border); padding: 2rem; width: 90%; max-width: 480px; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); position: relative; max-height: 90vh; overflow-y: auto; }
 
-        /* 2. THEME DROPDOWN */
         .theme-select { width: 100%; padding: 10px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px; cursor: pointer; appearance: none; font-weight: bold; }
         .theme-select:focus { border-color: var(--primary); outline: none; }
     </style>
@@ -151,7 +140,7 @@
     </script>
 
     <script>
-        // --- CORE UTILITIES (Defined first to prevent ReferenceErrors) ---
+        // --- CORE UTILITIES ---
         function getEl(id) { return document.getElementById(id); }
 
         function showView(name) {
@@ -166,7 +155,11 @@
 
         function switchPanel(panelId) {
             if (window.innerWidth < 768) toggleSidebar(false);
-            ['room-list-panel', 'chat-interface'].forEach(p => getEl(p).classList.add('hidden'));
+            // FIXED: Only hide panels that actually exist as main views
+            ['room-list-panel', 'chat-interface'].forEach(p => {
+                const el = getEl(p);
+                if(el) el.classList.add('hidden');
+            });
             const panel = getEl(panelId);
             if(panel) panel.classList.remove('hidden');
             if(panelId === 'chat-interface') getEl('msg-box').scrollTop = getEl('msg-box').scrollHeight;
@@ -240,6 +233,53 @@
         }
         function clearInlineErrors() {
             document.querySelectorAll('.inline-error').forEach(el => el.textContent = '');
+        }
+        
+        function openProfileModal() {
+            getEl('profile-overlay').classList.add('visible');
+            if (window.innerWidth < 768) toggleSidebar(false);
+        }
+        function closeProfileModal() {
+            getEl('profile-overlay').classList.remove('visible');
+        }
+        function openSettingsModal() {
+            getEl('settings-overlay').classList.add('visible');
+            if (window.innerWidth < 768) toggleSidebar(false);
+        }
+        function closeSettingsModal() {
+            getEl('settings-overlay').classList.remove('visible');
+        }
+        function openInviteModal(roomId) {
+            getEl('invite-overlay').classList.add('visible');
+            const link = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
+            getEl('invite-link-text').value = link;
+        }
+        function closeInviteModal() {
+            getEl('invite-overlay').classList.remove('visible');
+        }
+        function copyInviteLink() {
+            const input = getEl('invite-link-text');
+            input.select();
+            input.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(input.value).then(() => {
+                showCustomAlert("Link copied to clipboard!", "Success");
+                closeInviteModal();
+            }).catch(err => {
+                console.error(err);
+                showCustomAlert("Failed to copy automatically.", "Error");
+            });
+        }
+        function handleModalKey(e) { if(e.key === 'Enter') closeModal(true); }
+        function togglePassword(inputId, iconId) {
+            const input = getEl(inputId);
+            const icon = getEl(iconId);
+            if(input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
         }
 
         // --- APP LOGIC ---
@@ -670,6 +710,7 @@
                 const shortId = m.sender_id ? m.sender_id.slice(0,4) : '????';
                 profile = { id: m.sender_id, username: `Anon ${shortId}`, avatar: `https://api.dicebear.com/9.x/bottts-neutral/svg?seed=${m.sender_id}` };
                 
+                // Lazy Fetch
                 const { doc, getDoc } = window.firebaseModules;
                 getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'profiles', m.sender_id)).then(snap => {
                     if(snap.exists()) {
@@ -680,11 +721,11 @@
                 });
             }
 
+            // 18. Highlight Mentions in text
             let processedText = m.text;
             const mentionRegex = /@(\w+)/g; 
-            processedText = processedText.replace(mentionRegex, (match, username) => {
-                const isValidUser = Object.values(profileCache).some(u => u.username.toLowerCase() === username.toLowerCase());
-                if(isValidUser) {
+            processedText = processedText.replace(mentionRegex, (match) => {
+                if(match.substring(1) === currentUser.username || match.substring(1) === profileCache[currentUser.uid]?.alias) {
                      return `<span class="mention">${match}</span>`;
                 }
                 return `<span class="text-amber-500 font-semibold">${match}</span>`;
@@ -716,10 +757,13 @@
             box.appendChild(div);
         }
 
+        // 18. Mention Logic
         function handleChatInput(e) {
             const input = e.target;
             const val = input.value;
             const cursorPos = input.selectionStart;
+            
+            // Find the word being typed
             const textBeforeCursor = val.substring(0, cursorPos);
             const words = textBeforeCursor.split(/\s+/);
             const currentWord = words[words.length - 1];
@@ -737,6 +781,7 @@
             if(dropdown.style.display === 'block') {
                 if(e.key === 'Enter' || e.key === 'Tab') {
                     e.preventDefault();
+                    // Select first option
                     const first = dropdown.querySelector('.mention-item');
                     if(first) insertMention(first.dataset.name);
                 }
@@ -747,9 +792,11 @@
         function showMentionDropdown(queryStr) {
             const dropdown = getEl('mention-dropdown');
             dropdown.innerHTML = '';
+            
+            // Filter users
             const matches = Object.values(profileCache).filter(u => {
                 if(u.id === currentUser.uid) return false;
-                return u.username.toLowerCase().includes(queryStr);
+                return u.username.toLowerCase().includes(queryStr) || (u.alias && u.alias.toLowerCase().includes(queryStr));
             });
 
             if(matches.length === 0) {
@@ -765,9 +812,11 @@
                 div.innerHTML = `
                     <img src="${u.avatar}" class="w-5 h-5 rounded-full">
                     <span>${u.username}</span>
+                    ${u.alias ? `<span class="text-gray-500 text-xs">(@${u.alias})</span>` : ''}
                 `;
                 dropdown.appendChild(div);
             });
+
             dropdown.style.display = 'block';
         }
 
@@ -984,55 +1033,161 @@
             openRoom(dmId, dmName, null, { expires_at: Date.now() + (365 * 24 * 60 * 60 * 1000)});
         }
 
+        // FIXED: Improved goBack robustness
         function goBack() {
             if(currentRoomId) { 
-                updateTypingStatus(false);
-                if(typingUnsubscribe) typingUnsubscribe();
+                // Fire and forget
+                updateTypingStatus(false).catch(e => console.log(e));
+                if(typingUnsubscribe) { typingUnsubscribe(); typingUnsubscribe = null; }
                 
                 currentRoomId = null; 
                 currentRoomData = null;
-                if(messageUnsubscribe) messageUnsubscribe(); 
+                if(messageUnsubscribe) { messageUnsubscribe(); messageUnsubscribe = null; }
             }
             switchPanel('room-list-panel');
         }
         
-        function openProfileModal() {
-            getEl('profile-overlay').classList.add('visible');
-            if (window.innerWidth < 768) toggleSidebar(false);
-        }
-        function closeProfileModal() {
-            getEl('profile-overlay').classList.remove('visible');
-        }
-        function openSettingsModal() {
-            getEl('settings-overlay').classList.add('visible');
-            if (window.innerWidth < 768) toggleSidebar(false);
-        }
-        function closeSettingsModal() {
-            getEl('settings-overlay').classList.remove('visible');
-        }
-        
-        function openInviteModal(roomId) {
-            getEl('invite-overlay').classList.add('visible');
-            const link = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
-            getEl('invite-link-text').value = link;
-        }
-        function closeInviteModal() {
-            getEl('invite-overlay').classList.remove('visible');
-        }
-        function copyInviteLink() {
-            const input = getEl('invite-link-text');
-            input.select();
-            input.setSelectionRange(0, 99999);
-            navigator.clipboard.writeText(input.value).then(() => {
-                showCustomAlert("Link copied to clipboard!", "Success");
-                closeInviteModal();
-            }).catch(err => {
-                console.error(err);
-                showCustomAlert("Failed to copy automatically.", "Error");
-            });
+        async function updateProfile() {
+            const { updateDoc, doc } = window.firebaseModules;
+            const updates = { 
+                username: getEl('edit-username').value, 
+                username_lower: getEl('edit-username').value.toLowerCase(),
+                alias: getEl('edit-alias').value,
+                bio: getEl('edit-bio').value, 
+                avatar: getEl('edit-avatar').value,
+                updated_at: new Date().toISOString() 
+            };
+            try {
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'profiles', currentUser.uid), updates);
+                showCustomAlert("Identity Updated!", 'Success');
+                closeProfileModal();
+            } catch(e) {
+                showCustomAlert("Error: " + e.message, 'Update Failed');
+            }
         }
 
-        function handleModalKey(e) { if(e.key === 'Enter') closeModal(true); }
+        // Auth
+        async function handleLogin() {
+            clearInlineErrors();
+            const btn = getEl('btn-login'); btn.textContent = "Authenticating...";
+            const originalText = btn.textContent;
+            const inputVal = getEl('l-email').value.trim();
+            const password = getEl('l-pass').value;
+            
+            if(!inputVal || !password) {
+                setInlineError('login-error-email', "Credentials missing.");
+                return;
+            }
+
+            btn.textContent = "CONNECTING...";
+            btn.disabled = true;
+
+            const { signInWithEmailAndPassword, getDocs, query, where } = window.firebaseModules;
+            
+            let emailToUse = inputVal;
+            
+            if (!inputVal.includes('@')) {
+                try {
+                    const profilesCol = getPublicCollection('profiles');
+                    const q = query(profilesCol, where('username', '==', inputVal));
+                    const snap = await getDocs(q);
+                    
+                    if (snap.empty) {
+                        setInlineError('login-error-email', "Username not found.");
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                        return;
+                    }
+                    emailToUse = snap.docs[0].data().email;
+                } catch(err) {
+                    console.error(err);
+                    showCustomAlert("Error verifying username.", "System Error");
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    return;
+                }
+            }
+
+            try {
+                await signInWithEmailAndPassword(auth, emailToUse, password);
+            } catch(e) {
+                btn.textContent = originalText;
+                btn.disabled = false;
+                
+                if(e.code === 'auth/invalid-email' || e.code === 'auth/user-not-found') {
+                    setInlineError('login-error-email', "Invalid or unknown user.");
+                } else if(e.code === 'auth/wrong-password') {
+                    setInlineError('login-error-pass', "Invalid passphrase.");
+                } else {
+                    showCustomAlert(e.message, 'Login Failed');
+                }
+            }
+        }
+
+        async function handleSignup() {
+            clearInlineErrors();
+            const btn = getEl('btn-signup'); 
+            const originalText = btn.textContent;
+
+            btn.textContent = "PROCESSING...";
+            btn.disabled = true;
+
+            const { createUserWithEmailAndPassword, setDoc, doc } = window.firebaseModules;
+            const email = getEl('s-email').value;
+            const password = getEl('s-pass').value;
+            const username = getEl('s-username').value;
+            const alias = getEl('s-alias').value;
+
+            if(!username) {
+                setInlineError('signup-error-user', "Username required.");
+                btn.textContent = originalText;
+                btn.disabled = false;
+                return;
+            }
+
+            try {
+                const cred = await createUserWithEmailAndPassword(auth, email, password);
+                // 7. Create profile immediately with Alias/Username
+                const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${cred.user.uid}`;
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'profiles', cred.user.uid), {
+                    id: cred.user.uid,
+                    username: username,
+                    username_lower: username.toLowerCase(), 
+                    alias: alias,
+                    email: email,
+                    avatar: avatar,
+                    status: 'online',
+                    lat: null, lon: null
+                });
+
+                showCustomAlert("Identity Created. Logging in...", 'Success');
+            } catch(e) {
+                btn.textContent = originalText;
+                btn.disabled = false;
+                
+                if(e.code === 'auth/email-already-in-use') setInlineError('signup-error-email', "Email already registered.");
+                else if(e.code === 'auth/weak-password') setInlineError('signup-error-pass', "Password too weak.");
+                else showCustomAlert(e.message, 'Registration Failed');
+            }
+        }
+        
+        // 6. Forgot Password
+        async function handleForgotPassword() {
+            const email = getEl('l-email').value;
+            if(!email || !email.includes('@')) {
+                setInlineError('login-error-email', "Enter a valid email first.");
+                return;
+            }
+            const { sendPasswordResetEmail } = window.firebaseModules;
+            try {
+                await sendPasswordResetEmail(auth, email);
+                showCustomAlert(`Reset link sent to ${email}. Check your inbox.`, "Link Sent");
+            } catch(e) {
+                showCustomAlert(e.message, "Error");
+            }
+        }
+
+        function handleLogout() { window.firebaseModules.signOut(auth); window.location.reload(); }
     </script>
 </head>
 <body>
@@ -1222,6 +1377,7 @@
 
                 <div id="chat-interface" class="absolute inset-0 bg-[var(--bg)] flex flex-col hidden z-30">
                     <div class="h-16 border-b border-[var(--border)] flex items-center justify-between px-4 bg-[var(--panel)] flex-shrink-0">
+                        <!-- 17. Visible Back Button -->
                         <button onclick="goBack()" class="text-[var(--text)] mr-3 p-2 bg-[var(--input-bg)] rounded-lg hover:bg-amber-900/30 border border-[var(--border)]"><i class="fas fa-arrow-left text-lg"></i></button>
                         <div class="flex flex-col overflow-hidden flex-1">
                             <div class="font-bold text-lg flex items-center gap-2 truncate"><span class="text-amber-500">#</span> <span id="chat-header-name" class="truncate text-[var(--text)]">Room</span></div>
@@ -1236,7 +1392,7 @@
                     <div class="p-3 md:p-4 border-t border-[var(--border)] bg-[var(--panel)] flex gap-2 flex-shrink-0 items-center relative">
                         <div id="mention-dropdown" class="mention-dropdown"></div>
                         
-                        <button class="text-[var(--text-muted)] hover:text-amber-500 p-2"><i class="fas fa-paperclip"></i></button>
+                        <!-- <button class="text-[var(--text-muted)] hover:text-amber-500 p-2"><i class="fas fa-paperclip"></i></button> -->
                         <input id="msg-inp" type="text" class="flex-1 bg-[var(--input-bg)] border-none text-[var(--text)] rounded-lg px-4 py-3 focus:ring-1 focus:ring-amber-500 outline-none transition" placeholder="Encrypting message... (Type @ to mention)" onkeypress="if(event.key==='Enter') sendMsg()">
                         <button onclick="sendMsg()" class="bg-amber-600 hover:bg-amber-500 text-white w-12 h-12 rounded-lg flex items-center justify-center shadow-lg"><i class="fas fa-paper-plane"></i></button>
                     </div>
