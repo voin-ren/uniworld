@@ -133,10 +133,10 @@
     <!-- FIREBASE SDK SETUP -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, sendEmailVerification } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        window.firebaseModules = { initializeApp, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, serverTimestamp };
+        window.firebaseModules = { initializeApp, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, sendEmailVerification, getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, serverTimestamp };
     </script>
 
     <script>
@@ -217,14 +217,26 @@
             confirmCallback = (result) => { result === true ? callback(input.value) : callback(null); };
         }
 
+        function toggleTheme() {
+            const html = document.documentElement;
+            const isDark = !html.classList.contains('light');
+            setTheme(isDark ? 'light' : 'dark');
+        }
+
         function setTheme(mode) {
             const html = document.documentElement;
+            const icon = getEl('theme-toggle-icon');
+            
             if (mode === 'light') {
                 html.classList.add('light');
+                html.classList.remove('dark');
                 localStorage.setItem('uniworld-theme', 'light');
+                if(icon) icon.classList.replace('fa-sun', 'fa-moon');
             } else {
                 html.classList.remove('light');
+                html.classList.add('dark');
                 localStorage.setItem('uniworld-theme', 'dark');
+                if(icon) icon.classList.replace('fa-moon', 'fa-sun');
             }
         }
         
@@ -242,13 +254,8 @@
         function closeProfileModal() {
             getEl('profile-overlay').classList.remove('visible');
         }
-        function openSettingsModal() {
-            getEl('settings-overlay').classList.add('visible');
-            if (window.innerWidth < 768) toggleSidebar(false);
-        }
-        function closeSettingsModal() {
-            getEl('settings-overlay').classList.remove('visible');
-        }
+        // Removed old Settings functions as they are merged
+        
         function openInviteModal(roomId) {
             getEl('invite-overlay').classList.add('visible');
             const link = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
@@ -322,10 +329,7 @@
         window.addEventListener('load', () => {
             // Load theme
             const savedTheme = localStorage.getItem('uniworld-theme') || 'dark';
-            if (savedTheme === 'light') document.documentElement.classList.add('light');
-            // Set dropdown initial value
-            const select = getEl('theme-select');
-            if (select) select.value = savedTheme;
+            setTheme(savedTheme);
 
             const checkModules = setInterval(() => {
                 if (window.firebaseModules) {
@@ -359,10 +363,25 @@
 
             onAuthStateChanged(auth, (user) => {
                 if (user) {
-                    handleSession(user);
+                    if(user.emailVerified) {
+                        currentUser = user; // Set currentUser here for app access
+                        handleSession(user);
+                        getEl('verification-view').classList.add('hidden');
+                        getEl('f-login').classList.remove('hidden');
+                    } else {
+                        // Email not verified, block app access, show verification view
+                        currentUser = user; // Keep user for resend capability
+                        showView('auth');
+                        getEl('f-login').classList.add('hidden');
+                        getEl('f-signup').classList.add('hidden');
+                        getEl('verification-view').classList.remove('hidden');
+                        getEl('v-email-display').textContent = user.email;
+                    }
                 } else {
                     currentUser = null;
                     showView('auth');
+                    getEl('verification-view').classList.add('hidden');
+                    getEl('f-login').classList.remove('hidden');
                 }
             });
 
@@ -376,7 +395,6 @@
         const getPublicCollection = (name) => window.firebaseModules.collection(db, 'artifacts', appId, 'public', 'data', name);
         
         async function handleSession(user) {
-            currentUser = user;
             showView('app');
             
             const urlParams = new URLSearchParams(window.location.search);
@@ -480,6 +498,7 @@
         function filterRooms(searchText) {
             const now = Date.now();
             const filtered = allRoomsCache.filter(r => {
+                if (r.is_dm) return false; // HIDE DMs
                 if (r.expires_at && r.expires_at < now) return false;
                 if (!searchText) return true;
                 return r.name.toLowerCase().includes(searchText.toLowerCase());
@@ -514,7 +533,8 @@
             
             const myRooms = allRoomsCache.filter(r => 
                 r.created_by === currentUser.uid && 
-                (!r.expires_at || r.expires_at > now)
+                (!r.expires_at || r.expires_at > now) &&
+                !r.is_dm // HIDE DMs
             );
 
             if (myRooms.length === 0) {
@@ -726,7 +746,7 @@
             const mentionRegex = /@(\w+)/g; 
             processedText = processedText.replace(mentionRegex, (match) => {
                 if(match.substring(1) === currentUser.username || match.substring(1) === profileCache[currentUser.uid]?.alias) {
-                     return `<span class="mention">${match}</span>`;
+                      return `<span class="mention">${match}</span>`;
                 }
                 return `<span class="text-amber-500 font-semibold">${match}</span>`;
             });
@@ -987,7 +1007,8 @@
                             created_by: currentUser.uid,
                             password_hash,
                             created_at: Date.now(),
-                            expires_at: expiresAt
+                            expires_at: expiresAt,
+                            is_dm: false
                         });
                         showCustomAlert('Room created. Expires in 24h.', 'Success');
                     } catch(e) {
@@ -1109,7 +1130,9 @@
             }
 
             try {
-                await signInWithEmailAndPassword(auth, emailToUse, password);
+                const cred = await signInWithEmailAndPassword(auth, emailToUse, password);
+                // Note: onAuthStateChanged handles the routing and verification check
+                btn.textContent = "SUCCESS";
             } catch(e) {
                 btn.textContent = originalText;
                 btn.disabled = false;
@@ -1132,7 +1155,7 @@
             btn.textContent = "PROCESSING...";
             btn.disabled = true;
 
-            const { createUserWithEmailAndPassword, setDoc, doc } = window.firebaseModules;
+            const { createUserWithEmailAndPassword, setDoc, doc, sendEmailVerification, signOut } = window.firebaseModules;
             const email = getEl('s-email').value;
             const password = getEl('s-pass').value;
             const username = getEl('s-username').value;
@@ -1147,7 +1170,11 @@
 
             try {
                 const cred = await createUserWithEmailAndPassword(auth, email, password);
-                // 7. Create profile immediately with Alias/Username
+                
+                // Send verification
+                await sendEmailVerification(cred.user);
+
+                // Create profile immediately
                 const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${cred.user.uid}`;
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'profiles', cred.user.uid), {
                     id: cred.user.uid,
@@ -1160,7 +1187,19 @@
                     lat: null, lon: null
                 });
 
-                showCustomAlert("Identity Created. Logging in...", 'Success');
+                // Sign out immediately to enforce verification loop
+                await signOut(auth);
+
+                showCustomAlert("Identity Created. Verification email sent. Please check your inbox to activate.", 'Action Required');
+                
+                // Return to login view
+                getEl('f-signup').classList.add('hidden');
+                getEl('f-login').classList.remove('hidden');
+                getEl('l-email').value = email;
+                
+                btn.textContent = originalText;
+                btn.disabled = false;
+
             } catch(e) {
                 btn.textContent = originalText;
                 btn.disabled = false;
@@ -1171,6 +1210,31 @@
             }
         }
         
+        async function resendVerification() {
+            const { sendEmailVerification } = window.firebaseModules;
+            if(currentUser) {
+                try {
+                    await sendEmailVerification(currentUser);
+                    showCustomAlert("Verification email sent.", "Success");
+                } catch(e) {
+                    showCustomAlert("Wait before retrying.", "Rate Limit");
+                }
+            }
+        }
+        
+        async function checkVerification() {
+            const { onAuthStateChanged } = window.firebaseModules;
+            if(currentUser) {
+                await currentUser.reload();
+                if(currentUser.emailVerified) {
+                   // State change listener will catch this
+                   window.location.reload();
+                } else {
+                   showCustomAlert("Email still not verified. Check spam folder.", "Not Verified");
+                }
+            }
+        }
+
         // 6. Forgot Password
         async function handleForgotPassword() {
             const email = getEl('l-email').value;
@@ -1207,27 +1271,6 @@
     <!-- OVERLAY -->
     <div id="overlay" class="overlay" onclick="toggleSidebar(false)"></div>
 
-    <!-- 4. SETTINGS MODAL (Updated with Theme Select) -->
-    <div id="settings-overlay" class="blur-modal-overlay" onclick="closeSettingsModal()">
-        <div class="modal-card space-y-6" onclick="event.stopPropagation()">
-            <h2 class="text-2xl font-bold text-[var(--text)] text-center">SETTINGS</h2>
-            
-            <div class="space-y-2">
-                <div class="text-xs font-bold text-[var(--text-muted)] ml-1">THEME PREFERENCE</div>
-                <!-- 2. THEME DROPDOWN IMPLEMENTATION -->
-                <select id="theme-select" class="theme-select" onchange="setTheme(this.value)">
-                    <option value="dark">Dark Mode</option>
-                    <option value="light">Light Mode</option>
-                </select>
-            </div>
-            
-            <div class="border-t border-[var(--border)] pt-4">
-                <button onclick="handleLogout()" class="btn bg-[var(--danger)] text-white w-full">SIGN OUT</button>
-            </div>
-            <button onclick="closeSettingsModal()" class="text-[var(--text-muted)] hover:text-[var(--text)] text-sm font-bold w-full text-center mt-2">CLOSE</button>
-        </div>
-    </div>
-
     <!-- 2. INVITE LINK MODAL -->
     <div id="invite-overlay" class="blur-modal-overlay" onclick="closeInviteModal()">
         <div class="modal-card text-center space-y-4" onclick="event.stopPropagation()">
@@ -1241,7 +1284,7 @@
         </div>
     </div>
 
-    <!-- 4. PROFILE MODAL (Cleaned Up) -->
+    <!-- 4. PROFILE MODAL (Updated with Sign Out) -->
     <div id="profile-overlay" class="blur-modal-overlay" onclick="closeProfileModal()">
         <div class="modal-card relative" onclick="event.stopPropagation()">
             <button onclick="closeProfileModal()" class="absolute top-4 right-4 text-[var(--text-muted)] hover:text-[var(--text)] p-2"><i class="fas fa-times text-xl"></i></button>
@@ -1250,13 +1293,17 @@
             <div class="flex justify-center mb-6"><div class="relative"><img id="edit-avatar-preview" src="" class="w-16 h-16 rounded-lg border-2 border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.3)]" onerror="this.src='https://api.dicebear.com/9.x/bottts-neutral/svg?seed=fallback'"></div></div>
             
             <div class="space-y-4">
-                <!-- ADDED BACK CUSTOM AVATAR INPUT -->
                 <div><label class="text-xs font-bold text-[var(--text-muted)] ml-1 mb-1 block">CUSTOM AVATAR URL</label><input id="edit-avatar" type="text" class="input-field" placeholder="https://..." oninput="document.getElementById('edit-avatar-preview').src = this.value"></div>
                 
                 <div><label class="text-xs font-bold text-[var(--text-muted)] ml-1 mb-1 block">ALIAS / NICKNAME</label><input id="edit-alias" type="text" class="input-field" placeholder="@callsign"></div>
                 <div><label class="text-xs font-bold text-[var(--text-muted)] ml-1 mb-1 block">USERNAME</label><input id="edit-username" type="text" class="input-field"></div>
                 <div><label class="text-xs font-bold text-[var(--text-muted)] ml-1 mb-1 block">BIO DATA</label><textarea id="edit-bio" rows="3" class="input-field resize-none"></textarea></div>
                 <button onclick="updateProfile()" class="btn shadow-lg shadow-amber-900/20">SAVE CHANGES</button>
+                
+                <!-- NEW SIGN OUT BUTTON -->
+                <div class="border-t border-[var(--border)] pt-4 mt-4">
+                    <button onclick="handleLogout()" class="btn bg-[var(--danger)] text-white w-full">SIGN OUT</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1267,6 +1314,21 @@
             <h1 class="text-5xl text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 font-black mb-2 tracking-tighter">UNIWORLD</h1>
             <p class="text-gray-500 text-xs mb-8 font-mono tracking-[0.3em]">FIREBASE EDITION</p>
             
+            <!-- VERIFICATION VIEW (Hidden by default) -->
+            <div id="verification-view" class="hidden space-y-6">
+                <div class="p-4 border border-amber-500/30 bg-amber-500/10 rounded-lg">
+                    <i class="fas fa-envelope-open-text text-4xl text-amber-500 mb-4"></i>
+                    <h2 class="text-xl font-bold text-amber-500 mb-2">Verification Required</h2>
+                    <p class="text-xs text-gray-400 mb-2">We sent a link to:</p>
+                    <div id="v-email-display" class="font-mono text-white bg-black/30 p-2 rounded mb-2 text-sm"></div>
+                    <p class="text-xs text-gray-400">Please check your inbox (and spam) to activate your account.</p>
+                </div>
+                
+                <button onclick="checkVerification()" class="btn bg-green-600 hover:bg-green-500 text-white">I'VE VERIFIED (RELOAD)</button>
+                <button onclick="resendVerification()" class="text-xs text-amber-500 hover:text-amber-300 hover:underline block w-full text-center mt-2">Resend Email</button>
+                <button onclick="handleLogout()" class="text-xs text-gray-500 hover:text-gray-300 hover:underline block w-full text-center mt-4">Back to Login</button>
+            </div>
+
             <div id="f-login" class="space-y-4">
                 <div>
                     <input id="l-email" type="text" class="input-field" placeholder="Access ID (Email or Username)">
@@ -1321,27 +1383,29 @@
         <div class="app-container">
             <!-- SIDEBAR -->
             <div id="sidebar" class="sidebar p-4">
-                <div class="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--border)] cursor-pointer active:bg-[var(--input-bg)] p-2 rounded-xl" onclick="openProfileModal()">
-                    <img id="my-avatar" class="w-12 h-12 rounded-xl border-2 border-amber-500 bg-gray-800" onerror="this.src='https://api.dicebear.com/9.x/bottts-neutral/svg?seed=fallback'">
-                    <div class="flex-1 overflow-hidden">
+                <div class="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--border)] p-2 rounded-xl">
+                    <img id="my-avatar" class="w-12 h-12 rounded-xl border-2 border-amber-500 bg-gray-800 cursor-pointer" onclick="openProfileModal()" onerror="this.src='https://api.dicebear.com/9.x/bottts-neutral/svg?seed=fallback'">
+                    <div class="flex-1 overflow-hidden cursor-pointer" onclick="openProfileModal()">
                         <div class="font-bold text-amber-400 truncate text-lg" id="my-name">Anon User</div>
                         <div class="text-[10px] font-mono flex items-center gap-2 text-[var(--text-muted)]">
                             STATUS: <span id="status-indicator" class="text-gray-500">●</span> SECURE
                         </div>
                     </div>
-                    <button onclick="event.stopPropagation(); openSettingsModal()" class="text-[var(--text-muted)] hover:text-[var(--text)] p-2"><i class="fas fa-cog"></i></button>
+                    <!-- NEW THEME TOGGLE -->
+                    <button id="theme-toggle-btn" onclick="event.stopPropagation(); toggleTheme()" class="text-[var(--text-muted)] hover:text-[var(--text)] p-2 bg-[var(--input-bg)] rounded-full w-8 h-8 flex items-center justify-center transition"><i id="theme-toggle-icon" class="fas fa-sun text-xs"></i></button>
                 </div>
                 <div class="space-y-1 mb-4">
                     <button onclick="switchPanel('room-list-panel')" class="w-full text-left p-3 text-sm font-bold text-[var(--text)] hover:bg-[var(--input-bg)] rounded-lg flex items-center gap-3"><i class="fas fa-hashtag w-5 text-center text-amber-500"></i> ROOMS</button>
-                    <button onclick="openSettingsModal()" class="w-full text-left p-3 text-sm font-bold text-[var(--text)] hover:bg-[var(--input-bg)] rounded-lg flex items-center gap-3"><i class="fas fa-sliders-h w-5 text-center text-amber-500"></i> SETTINGS</button>
+                    <!-- SETTINGS NOW OPENS PROFILE MODAL -->
+                    <button onclick="openProfileModal()" class="w-full text-left p-3 text-sm font-bold text-[var(--text)] hover:bg-[var(--input-bg)] rounded-lg flex items-center gap-3"><i class="fas fa-sliders-h w-5 text-center text-amber-500"></i> SETTINGS</button>
                 </div>
-
+<!-- 
                 <div class="mb-4">
                     <button onclick="showNearby()" class="w-full text-left p-3 text-sm font-bold text-[var(--text)] hover:bg-[var(--input-bg)] rounded-lg flex items-center gap-3">
                         <i class="fas fa-location-dot w-5 text-center text-amber-500"></i> NEARBY
                         <span id="radius-display" style="margin-left:auto;color:var(--text-muted);font-size:12px">within 10km</span>
                     </button>
-                </div>
+                </div> -->
 
                 <div class="mb-4 flex-1 overflow-hidden flex flex-col min-h-[150px]">
                     <div class="text-[10px] font-bold text-[var(--text-muted)] mb-2 px-2 tracking-widest font-mono">MY ROOMS</div>
@@ -1377,7 +1441,6 @@
 
                 <div id="chat-interface" class="absolute inset-0 bg-[var(--bg)] flex flex-col hidden z-30">
                     <div class="h-16 border-b border-[var(--border)] flex items-center justify-between px-4 bg-[var(--panel)] flex-shrink-0">
-                        <!-- 17. Visible Back Button -->
                         <button onclick="goBack()" class="text-[var(--text)] mr-3 p-2 bg-[var(--input-bg)] rounded-lg hover:bg-amber-900/30 border border-[var(--border)]"><i class="fas fa-arrow-left text-lg"></i></button>
                         <div class="flex flex-col overflow-hidden flex-1">
                             <div class="font-bold text-lg flex items-center gap-2 truncate"><span class="text-amber-500">#</span> <span id="chat-header-name" class="truncate text-[var(--text)]">Room</span></div>
@@ -1392,7 +1455,6 @@
                     <div class="p-3 md:p-4 border-t border-[var(--border)] bg-[var(--panel)] flex gap-2 flex-shrink-0 items-center relative">
                         <div id="mention-dropdown" class="mention-dropdown"></div>
                         
-                        <!-- <button class="text-[var(--text-muted)] hover:text-amber-500 p-2"><i class="fas fa-paperclip"></i></button> -->
                         <input id="msg-inp" type="text" class="flex-1 bg-[var(--input-bg)] border-none text-[var(--text)] rounded-lg px-4 py-3 focus:ring-1 focus:ring-amber-500 outline-none transition" placeholder="Encrypting message... (Type @ to mention)" onkeypress="if(event.key==='Enter') sendMsg()">
                         <button onclick="sendMsg()" class="bg-amber-600 hover:bg-amber-500 text-white w-12 h-12 rounded-lg flex items-center justify-center shadow-lg"><i class="fas fa-paper-plane"></i></button>
                     </div>
