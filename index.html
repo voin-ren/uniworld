@@ -3,131 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UniWorld </title>
+    <title>UniWorld</title>
     
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
 
-    <style>
-        /* THEME VARIABLES */
-        :root { 
-            --bg: #09090b; 
-            --panel: #18181b; 
-            --primary: #f59e0b; 
-            --text: #e4e4e7; 
-            --text-muted: #a1a1aa;
-            --danger: #ef4444; 
-            --input-bg: #27272a;
-            --border: #3f3f46;
-            --glass-bg: rgba(24, 24, 27, 0.98);
-            --msg-mine: #78350f;
-            --msg-mine-text: #fef3c7;
-            --msg-theirs: #27272a;
-            --msg-theirs-text: #e4e4e7;
-        }
-
-        /* Light Mode Overrides */
-        html.light {
-            --bg: #f4f4f5;
-            --panel: #ffffff;
-            --text: #18181b;
-            --text-muted: #71717a;
-            --input-bg: #e4e4e7;
-            --border: #d4d4d8;
-            --glass-bg: rgba(255, 255, 255, 0.98);
-            --msg-mine: #fbbf24;
-            --msg-mine-text: #451a03;
-            --msg-theirs: #ffffff;
-            --msg-theirs-text: #18181b;
-        }
-        
-        /* Tailwind Overrides */
-        .bg-\[\#09090b\] { background-color: var(--bg) !important; }
-        .bg-\[\#18181b\] { background-color: var(--panel) !important; }
-        .bg-\[\#27272a\] { background-color: var(--input-bg) !important; }
-        .border-\[\#27272a\] { border-color: var(--border) !important; }
-        .border-\[\#3f3f46\] { border-color: var(--border) !important; }
-        .text-gray-300 { color: var(--text) !important; } 
-        
-        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; overflow: hidden; position: fixed; inset: 0; }
-        .hidden { display: none !important; }
-        * { transition: background-color 0.2s, border-color 0.2s, color 0.2s; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
-
-        .btn { background: var(--primary); color: black; font-weight: 800; border: none; padding: 12px; cursor: pointer; width: 100%; border-radius: 8px; text-transform: uppercase; letter-spacing: 1px; font-size: 14px; }
-        .btn:active { transform: scale(0.98); opacity: 0.9; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.5); }
-        
-        .input-field { background: var(--input-bg); border: 1px solid var(--border); color: var(--text); padding: 12px; width: 100%; border-radius: 8px; outline: none; font-family: inherit; }
-        .input-field:focus { border-color: var(--primary); }
-        
-        .glass-card { background: var(--glass-bg); border: 1px solid var(--border); padding: 2rem; width: 90%; max-width: 400px; margin: auto; border-radius: 16px; }
-
-        .app-container { display: flex; width: 100%; height: 100%; overflow: hidden; position: relative; }
-        .sidebar { width: 300px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; height: 100%; flex-shrink: 0; z-index: 40; }
-        .main-area { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; height: 100%; overflow: hidden; }
-        
-        .msg-row { display: flex; margin-bottom: 12px; padding: 0 16px; animation: popIn 0.1s ease-out; width: 100%; }
-        .msg-row.mine { justify-content: flex-end; }
-        .msg-row.theirs { justify-content: flex-start; align-items: flex-end; gap: 8px; }
-
-        .msg-bubble { padding: 6px 10px; border-radius: 12px; max-width: 75%; position: relative; font-family: sans-serif; line-height: 1.5; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); word-wrap: break-word; min-width: 80px; }
-        .msg-bubble.mine { background: var(--msg-mine); border: 1px solid var(--primary); color: var(--msg-mine-text); border-bottom-right-radius: 2px; }
-        .msg-bubble.theirs { background: var(--msg-theirs); border: 1px solid var(--border); color: var(--msg-theirs-text); border-bottom-left-radius: 2px; }
-        .msg-pending { opacity: 0.6; border: 1px dashed #f59e0b; }
-        
-        .mention { color: #fcd34d; font-weight: bold; background: rgba(245, 158, 11, 0.15); padding: 0 4px; border-radius: 4px; cursor: pointer; }
-        html.light .mention { color: #b45309; background: rgba(245, 158, 11, 0.3); }
-
-        .msg-actions { position: absolute; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity 0.2s; }
-        .msg-row.mine .msg-actions { left: -40px; }
-        .msg-row:hover .msg-actions { opacity: 1; }
-        
-        @keyframes popIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-        @media (max-width: 768px) {
-            .sidebar { position: absolute; top: 0; left: 0; width: 85%; max-width: 320px; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 10px 0 25px rgba(0,0,0,0.5); }
-            .sidebar.open { transform: translateX(0); }
-            .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 30; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-            .overlay.visible { opacity: 1; pointer-events: auto; }
-            .msg-bubble { max-width: 85%; }
-        }
-        @media (min-width: 769px) { .overlay { display: none; } .msg-bubble { max-width: 60%; } }
-
-        .nearby-modal { position: fixed; inset: 12% 12% 12% 12%; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; z-index: 60; overflow:auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-        .nearby-item { display:flex; gap:12px; align-items:center; padding:8px; border-radius:8px; cursor:pointer; }
-        .nearby-item:hover { background: rgba(255,255,255,0.05); }
-        
-        .mention-dropdown { position: absolute; bottom: 100%; left: 0; width: 220px; max-height: 150px; overflow-y: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; z-index: 50; box-shadow: 0 -4px 15px rgba(0,0,0,0.5); display: none; }
-        .mention-item { padding: 10px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; border-bottom: 1px solid var(--border); color: var(--text); }
-        .mention-item:hover, .mention-item.active { background: var(--input-bg); color: var(--primary); }
-
-        .input-group { position: relative; display: flex; align-items: center; }
-        .password-toggle { position: absolute; right: 12px; color: var(--text-muted); cursor: pointer; padding: 4px; transition: color 0.2s; }
-        .password-toggle:hover { color: var(--primary); }
-
-        .inline-error { color: var(--danger); font-size: 0.7rem; margin-top: 4px; margin-left: 2px; height: 14px; font-weight: 600; }
-        
-        .auth-toggle-btn { cursor: pointer; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-size: 0.85rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); transition: all 0.2s; }
-        .auth-toggle-btn:hover { color: var(--primary); text-shadow: 0 0 8px rgba(245,158,11,0.4); }
-
-        .typing-indicator { font-size: 0.75rem; color: var(--text-muted); padding: 0 16px 8px 16px; min-height: 24px; font-style: italic; opacity: 0; transition: opacity 0.3s; }
-        .typing-indicator.active { opacity: 1; }
-        .typing-dot { display: inline-block; animation: pulse 1.5s infinite; margin-right: 2px; font-weight: bold; color: var(--primary); }
-        @keyframes pulse { 0% { opacity: .2; } 50% { opacity: 1; } 100% { opacity: .2; } }
-
-        .blur-modal-overlay { position: fixed; inset: 0; z-index: 50; backdrop-filter: blur(8px); background-color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
-        .blur-modal-overlay.visible { opacity: 1; pointer-events: auto; }
-        .modal-card { background: var(--panel); border: 1px solid var(--border); padding: 2rem; width: 90%; max-width: 480px; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); position: relative; max-height: 90vh; overflow-y: auto; }
-
-        .theme-select { width: 100%; padding: 10px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px; cursor: pointer; appearance: none; font-weight: bold; }
-        .theme-select:focus { border-color: var(--primary); outline: none; }
-    </style>
-
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Pure CSS Stylesheet (No Tailwind) -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- FIREBASE SDK SETUP -->
@@ -188,6 +72,7 @@
             getEl('modal-message').textContent = message;
             getEl('modal-ok-btn').textContent = 'OK';
             getEl('custom-modal-backdrop').classList.remove('hidden');
+            setTimeout(() => getEl('modal-ok-btn').focus(), 50);
             confirmCallback = null;
         }
 
@@ -199,6 +84,7 @@
             getEl('modal-ok-btn').textContent = okText;
             getEl('modal-cancel-btn').textContent = cancelText;
             getEl('custom-modal-backdrop').classList.remove('hidden');
+            setTimeout(() => getEl('modal-ok-btn').focus(), 50);
             confirmCallback = callback;
         }
 
@@ -254,7 +140,6 @@
         function closeProfileModal() {
             getEl('profile-overlay').classList.remove('visible');
         }
-        // Removed old Settings functions as they are merged
         
         function openInviteModal(roomId) {
             getEl('invite-overlay').classList.add('visible');
@@ -468,7 +353,10 @@
             getEl('edit-avatar-preview').src = data.avatar || '';
             
             const el = getEl('status-indicator');
-            if(el) el.classList.replace('text-gray-500', 'text-green-500');
+            if(el) {
+                el.style.color = 'var(--green-500)';
+                el.classList.remove('text-gray-500'); // Keep JS clean, though styling is now CSS
+            }
         }
 
         function initializeRealtime() {
@@ -522,7 +410,7 @@
             if(rooms.length) {
                 rooms.forEach(r => grid.appendChild(createRoomCard(r)));
             } else {
-                grid.innerHTML = `<div class="col-span-full text-center text-gray-500 py-10 opacity-50 font-mono">No rooms found.<br>Adjust filters or create one.</div>`;
+                grid.innerHTML = `<div style="grid-column: 1/-1; text-align:center; color:var(--text-muted); padding: 2.5rem; opacity:0.5; font-family:monospace;">No rooms found.<br>Adjust filters or create one.</div>`;
             }
         }
 
@@ -538,21 +426,22 @@
             );
 
             if (myRooms.length === 0) {
-                list.innerHTML = `<div class="text-gray-600 text-xs p-2 italic">No active rooms</div>`;
+                list.innerHTML = `<div style="color:var(--gray-600); font-size:0.75rem; padding:0.5rem; font-style:italic;">No active rooms</div>`;
                 return;
             }
 
             myRooms.forEach(r => {
                 const div = document.createElement('div');
-                div.className = 'p-2 hover:bg-[#27272a] cursor-pointer flex items-center justify-between rounded-lg transition mb-1 group';
+                // UPDATED SEMANTIC CLASS
+                div.className = 'sidebar-list-item group';
                 const timeRemaining = getTimeRemaining(r.expires_at);
                 
                 div.innerHTML = `
-                    <div class="flex items-center gap-2 overflow-hidden">
-                        <i class="fas fa-hashtag text-amber-600 text-xs"></i>
-                        <div class="truncate text-sm text-gray-300 font-medium">${r.name}</div>
+                    <div class="sidebar-item-content">
+                        <i class="fas fa-hashtag" style="color: var(--primary-hover); font-size: 0.75rem;"></i>
+                        <div class="sidebar-item-text">${r.name}</div>
                     </div>
-                    <div class="text-[10px] text-gray-600 font-mono">${timeRemaining}</div>
+                    <div class="sidebar-item-sub">${timeRemaining}</div>
                 `;
                 div.onclick = () => openRoom(r.id, r.name, r.password_hash, r);
                 list.appendChild(div);
@@ -562,25 +451,26 @@
         function createRoomCard(r) {
             const div = document.createElement('div');
             const isOwner = r.created_by === currentUser.uid;
-            div.className = 'p-4 bg-[#27272a] border border-[#3f3f46] hover:border-amber-500 cursor-pointer rounded-lg transition flex flex-col justify-between h-32 shadow-sm relative group';
+            // UPDATED SEMANTIC CLASS
+            div.className = 'room-card group';
             
-            const lockHtml = r.password_hash ? `<i class="fas fa-lock text-yellow-400" title="Locked room"></i>` : '';
+            const lockHtml = r.password_hash ? `<i class="fas fa-lock" style="color: var(--yellow-400)" title="Locked room"></i>` : '';
             const deleteButtonHtml = isOwner ? 
-                `<button onclick="event.stopPropagation(); deleteRoom('${r.id}')" class="text-red-500 hover:text-red-300 transition p-1 rounded-full bg-[#18181b] hover:bg-red-900/20 z-10" title="Delete Room"><i class="fas fa-trash-alt text-xs"></i></button>` : '';
+                `<button onclick="event.stopPropagation(); deleteRoom('${r.id}')" class="btn-delete-room" title="Delete Room"><i class="fas fa-trash-alt" style="font-size:0.75rem;"></i></button>` : '';
 
             const timeStr = getTimeRemaining(r.expires_at);
 
             div.innerHTML = `
-                <div class="flex justify-between items-start">
-                    <div class="font-bold text-amber-400 text-lg truncate pr-2 w-full"># ${r.name}</div>
+                <div class="room-card-header">
+                    <div class="room-name"># ${r.name}</div>
                     ${lockHtml}
                 </div>
-                <div class="flex flex-col gap-1 mt-auto">
-                    <div class="text-[10px] text-gray-500 font-mono flex items-center gap-1">
+                <div class="room-footer">
+                    <div class="room-timer">
                         <i class="far fa-clock"></i> Ends in: <span class="expires-timer" data-expires="${r.expires_at}">${timeStr}</span>
                     </div>
-                    <div class="flex justify-between items-end mt-1">
-                        <div class="text-[10px] text-gray-500 bg-[#18181b] px-2 py-1 rounded font-mono border border-gray-800">${isOwner ? 'OWNER' : 'PUBLIC'}</div>
+                    <div class="room-tags">
+                        <div class="tag-badge">${isOwner ? 'OWNER' : 'PUBLIC'}</div>
                         ${deleteButtonHtml}
                     </div>
                 </div>
@@ -623,12 +513,20 @@
             Object.values(profileCache).forEach(u => {
                 if(u.id === currentUser.uid) return;
                 const div = document.createElement('div');
-                div.className = 'p-2 hover:bg-[#27272a] cursor-pointer flex items-center gap-3 rounded-lg transition mb-1';
+                // UPDATED SEMANTIC CLASS
+                div.className = 'sidebar-list-item';
+                // LOGIC: Alias (no @) OR @Username
+                const displayName = u.alias ? u.alias : '@' + u.username;
+                
                 div.innerHTML = `
-                    <div class="relative flex-shrink-0"><img src="${u.avatar}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=fallback'" class="w-8 h-8 rounded-full bg-gray-700 object-cover"><div class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[#18181b] ${u.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}"></div></div>
-                    <div class="min-w-0 overflow-hidden">
-                        <div class="text-sm font-bold text-gray-200 truncate">${u.username}</div>
-                        ${u.alias ? `<div class="text-[10px] text-gray-500 truncate">@${u.alias}</div>` : ''}
+                    <div class="sidebar-item-content" style="width:100%">
+                        <div style="position:relative; flex-shrink:0;">
+                            <img src="${u.avatar}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=fallback'" style="width:2rem; height:2rem; border-radius:50%; background:var(--gray-700); object-fit:cover;">
+                            <div style="position:absolute; bottom:0; right:0; width:0.625rem; height:0.625rem; border-radius:50%; border:2px solid var(--panel); background-color:${u.status === 'online' ? 'var(--green-500)' : 'var(--gray-500)'}"></div>
+                        </div>
+                        <div style="overflow:hidden; min-width:0;">
+                            <div class="sidebar-item-text">${displayName}</div>
+                        </div>
                     </div>
                 `;
                 div.onclick = () => startDM(u);
@@ -638,7 +536,10 @@
 
         function updateUserInUI(user) {
              const nameEls = document.querySelectorAll(`.username-display-${user.id}`);
-             nameEls.forEach(el => el.textContent = user.username);
+             // LOGIC: Alias (no @) OR @Username
+             const displayName = user.alias ? user.alias : '@' + user.username;
+             nameEls.forEach(el => el.textContent = displayName);
+             
              const imgEls = document.querySelectorAll(`.avatar-display-${user.id}`);
              imgEls.forEach(el => el.src = user.avatar);
         }
@@ -669,11 +570,12 @@
 
             // 2. INVITE LINK MODAL TRIGGER
             const inviteContainer = getEl('header-actions');
-            inviteContainer.innerHTML = `<div class="flex gap-4 text-gray-500 text-lg"><i class="fas fa-search cursor-pointer hidden"></i></div>`; 
+            inviteContainer.innerHTML = `<div style="display:flex; gap:1rem; color:var(--gray-500); font-size:1.125rem;"><i class="fas fa-search" style="cursor:pointer; display:none;"></i></div>`; 
             
             if (currentUser && roomData.created_by === currentUser.uid) {
                 const btn = document.createElement('button');
-                btn.className = "text-amber-500 hover:text-white transition p-1";
+                btn.className = "icon-btn";
+                btn.style.color = "var(--primary)";
                 btn.title = "Share Invite Link";
                 btn.innerHTML = `<i class="fas fa-share-alt"></i>`;
                 btn.onclick = () => openInviteModal(id);
@@ -689,7 +591,7 @@
             }, 100);
 
             const box = getEl('msg-box');
-            box.innerHTML = '<div class="flex flex-col items-center justify-center mt-20 gap-3"><i class="fas fa-circle-notch fa-spin text-amber-500 text-3xl"></i><span class="text-xs font-mono text-amber-500/50">CONNECTING TO FREQUENCY...</span></div>';
+            box.innerHTML = '<div style="display:flex; flex-direction:column; items-align:center; justify-content:center; margin-top:5rem; gap:0.75rem; text-align:center;"><i class="fas fa-circle-notch fa-spin" style="color:var(--primary); font-size:1.875rem;"></i><span style="font-size:0.75rem; font-family:monospace; color:rgba(245,158,11,0.5);">CONNECTING TO FREQUENCY...</span></div>';
 
             const { onSnapshot, query, where } = window.firebaseModules;
             const msgsCol = getPublicCollection('messages');
@@ -712,7 +614,7 @@
                     messages.forEach(m => renderMessage(m));
                     box.scrollTop = box.scrollHeight;
                 } else {
-                    box.innerHTML = '<div id="empty-msg" class="flex flex-col items-center justify-center h-full text-gray-600 pb-20"><i class="fas fa-satellite-dish text-4xl mb-4 opacity-20"></i><p class="text-sm font-mono">Room is quiet.</p></div>';
+                    box.innerHTML = '<div id="empty-msg" style="display:flex; flex-direction:column; items-align:center; justify-content:center; height:100%; text-align:center; color:var(--gray-600); padding-bottom:5rem;"><i class="fas fa-satellite-dish" style="font-size:2.25rem; margin-bottom:1rem; opacity:0.2;"></i><p style="font-size:0.875rem; font-family:monospace;">Room is quiet.</p></div>';
                 }
             }, (err) => {
                 console.error("Message Error", err);
@@ -746,30 +648,34 @@
             const mentionRegex = /@(\w+)/g; 
             processedText = processedText.replace(mentionRegex, (match) => {
                 if(match.substring(1) === currentUser.username || match.substring(1) === profileCache[currentUser.uid]?.alias) {
-                      return `<span class="mention">${match}</span>`;
+                       return `<span class="mention">${match}</span>`;
                 }
-                return `<span class="text-amber-500 font-semibold">${match}</span>`;
+                return `<span style="color:var(--primary); font-weight:600;">${match}</span>`;
             });
 
             const div = document.createElement('div');
             div.id = `msg-${m.id}`;
+            // UPDATED SEMANTIC CLASS
             div.className = `msg-row ${isMe ? 'mine' : 'theirs'} ${isOptimistic ? 'msg-pending' : ''}`;
             
+            // LOGIC: Alias (no @) OR @Username
+            const senderDisplayName = profile.alias ? profile.alias : '@' + profile.username;
+
             if (!isMe) {
                 div.innerHTML = `
-                    <img src="${profile.avatar}" class="avatar-display-${m.sender_id} w-8 h-8 rounded-full border border-gray-700 bg-black object-cover mb-1 cursor-pointer" onclick="startDM({id: '${m.sender_id}', username: '${profile.username}', avatar: '${profile.avatar}'})">
+                    <img src="${profile.avatar}" class="avatar-display-${m.sender_id}" style="width:2rem; height:2rem; border-radius:50%; border:1px solid var(--gray-700); background:black; object-fit:cover; margin-bottom:0.25rem; cursor:pointer;" onclick="startDM({id: '${m.sender_id}', username: '${profile.username}', avatar: '${profile.avatar}', alias: '${profile.alias || ''}'})">
                     <div class="msg-bubble theirs group">
-                        <div class="username-display-${m.sender_id} text-xs text-amber-500 font-bold mb-0.5 cursor-pointer hover:underline" onclick="startDM({id: '${m.sender_id}', username: '${profile.username}', avatar: '${profile.avatar}'})">${profile.username}</div>
-                        <div class="break-words">${processedText}</div>
-                        <div class="text-[9px] opacity-40 text-right mt-1 font-mono select-none">${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                        <div class="username-display-${m.sender_id}" style="font-size:0.75rem; color:var(--primary); font-weight:bold; margin-bottom:0.125rem; cursor:pointer; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" onclick="startDM({id: '${m.sender_id}', username: '${profile.username}', avatar: '${profile.avatar}', alias: '${profile.alias || ''}'})">${senderDisplayName}</div>
+                        <div style="word-break:break-word;">${processedText}</div>
+                        <div style="font-size:9px; opacity:0.4; text-align:right; margin-top:0.25rem; font-family:monospace; user-select:none;">${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
                     </div>
                 `;
             } else {
                 div.innerHTML = `
                     <div class="msg-bubble mine group">
-                        <div class="break-words">${processedText}</div>
-                        <div class="text-[9px] opacity-40 text-right mt-1 font-mono select-none">${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
-                        ${!isOptimistic ? `<div class="msg-actions"><button onclick="deleteMessage('${m.id}')" class="bg-[#09090b] rounded-full w-8 h-8 flex items-center justify-center text-red-500 border border-red-900 shadow-lg hover:bg-red-900 hover:text-white transition"><i class="fas fa-trash-alt"></i></button></div>` : ''}
+                        <div style="word-break:break-word;">${processedText}</div>
+                        <div style="font-size:9px; opacity:0.4; text-align:right; margin-top:0.25rem; font-family:monospace; user-select:none;">${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                        ${!isOptimistic ? `<div class="msg-actions"><button onclick="deleteMessage('${m.id}')" class="delete-msg-btn"><i class="fas fa-trash-alt" style="font-size:14px;"></i></button></div>` : ''}
                     </div>
                 `;
             }
@@ -826,13 +732,19 @@
 
             matches.forEach(u => {
                 const div = document.createElement('div');
+                // UPDATED SEMANTIC CLASS
                 div.className = 'mention-item';
-                div.dataset.name = u.username; 
-                div.onclick = () => insertMention(u.username);
+                // Pass the raw name (Alias or Username) to insert
+                const nameToInsert = u.alias || u.username;
+                div.dataset.name = nameToInsert; 
+                
+                // LOGIC: Alias (no @) OR @Username
+                const displayName = u.alias ? u.alias : '@' + u.username;
+
+                div.onclick = () => insertMention(nameToInsert);
                 div.innerHTML = `
-                    <img src="${u.avatar}" class="w-5 h-5 rounded-full">
-                    <span>${u.username}</span>
-                    ${u.alias ? `<span class="text-gray-500 text-xs">(@${u.alias})</span>` : ''}
+                    <img src="${u.avatar}" style="width:1.25rem; height:1.25rem; border-radius:50%;">
+                    <span>${displayName}</span>
                 `;
                 dropdown.appendChild(div);
             });
@@ -930,8 +842,12 @@
             const mentionRegex = /@(\w+)/g;
             let match;
             while ((match = mentionRegex.exec(text)) !== null) {
-                const username = match[1].toLowerCase();
-                const user = Object.values(profileCache).find(u => u.username.toLowerCase() === username);
+                const identifier = match[1].toLowerCase();
+                // Updated to find by username OR alias
+                const user = Object.values(profileCache).find(u => 
+                    u.username.toLowerCase() === identifier || 
+                    (u.alias && u.alias.toLowerCase() === identifier)
+                );
                 if(user) mentionUids.push(user.id);
             }
             
@@ -1035,7 +951,9 @@
         async function startDM(user) {
             const ids = [currentUser.uid, user.id].sort();
             const dmId = `${ids[0]}_${ids[1]}`;
-            const dmName = `@${user.username}`;
+            
+            // LOGIC: Alias (no @) OR @Username
+            const dmName = user.alias ? user.alias : `@${user.username}`;
 
             const { doc, getDoc, setDoc } = window.firebaseModules;
             const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', dmId);
@@ -1227,10 +1145,10 @@
             if(currentUser) {
                 await currentUser.reload();
                 if(currentUser.emailVerified) {
-                   // State change listener will catch this
-                   window.location.reload();
+                    // State change listener will catch this
+                    window.location.reload();
                 } else {
-                   showCustomAlert("Email still not verified. Check spam folder.", "Not Verified");
+                    showCustomAlert("Email still not verified. Check spam folder.", "Not Verified");
                 }
             }
         }
@@ -1256,14 +1174,14 @@
 </head>
 <body>
     <!-- CUSTOM ALERT MODAL -->
-    <div id="custom-modal-backdrop" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center hidden" onclick="closeModal(false)">
-        <div id="custom-modal-content" class="bg-[#18181b] border border-[#27272a] rounded-xl p-6 max-w-sm mx-4 w-full shadow-2xl transform transition-all" onclick="event.stopPropagation()">
-            <h3 id="modal-title" class="text-xl font-bold text-white mb-3">Alert</h3>
-            <p id="modal-message" class="text-gray-300 mb-4 text-sm"></p>
-            <input id="modal-input" type="text" class="input-field hidden mb-4" onkeypress="handleModalKey(event)">
-            <div class="flex justify-end gap-3">
-                <button id="modal-cancel-btn" class="hidden px-4 py-2 text-sm font-semibold rounded-lg text-gray-400 hover:bg-[#27272a] transition" onclick="closeModal(false)">Cancel</button>
-                <button id="modal-ok-btn" class="px-4 py-2 text-sm font-semibold rounded-lg bg-amber-500 text-black hover:bg-amber-400 transition" onclick="closeModal(true)">OK</button>
+    <div id="custom-modal-backdrop" class="alert-modal-backdrop hidden" onclick="closeModal(false)">
+        <div id="custom-modal-content" class="alert-modal" onclick="event.stopPropagation()">
+            <h3 id="modal-title" class="alert-title">Alert</h3>
+            <p id="modal-message" class="alert-message"></p>
+            <input id="modal-input" type="text" class="input-field alert-input hidden" onkeypress="handleModalKey(event)">
+            <div class="alert-actions">
+                <button id="modal-cancel-btn" class="btn-ghost hidden" onclick="closeModal(false)">Cancel</button>
+                <button id="modal-ok-btn" class="btn btn-sm" onclick="closeModal(true)">OK</button>
             </div>
         </div>
     </div>
@@ -1273,77 +1191,95 @@
 
     <!-- 2. INVITE LINK MODAL -->
     <div id="invite-overlay" class="blur-modal-overlay" onclick="closeInviteModal()">
-        <div class="modal-card text-center space-y-4" onclick="event.stopPropagation()">
-             <h2 class="text-xl font-bold text-[var(--text)]">INVITE AGENTS</h2>
-             <p class="text-xs text-[var(--text-muted)]">Share this secure link to grant access to this frequency.</p>
+        <div class="modal-card" style="text-align:center;" onclick="event.stopPropagation()">
+             <h2 style="font-size:1.25rem; font-weight:bold; color:var(--text); margin-bottom:1rem;">INVITE AGENTS</h2>
+             <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">Share this secure link to grant access to this frequency.</p>
              
-             <input id="invite-link-text" type="text" class="input-field text-center font-mono text-xs" readonly onclick="this.select()">
+             <input id="invite-link-text" type="text" class="input-field" style="text-align:center; font-family:monospace; font-size:0.75rem; margin-bottom:1rem;" readonly onclick="this.select()">
              
              <button onclick="copyInviteLink()" class="btn">COPY LINK</button>
-             <button onclick="closeInviteModal()" class="text-[var(--text-muted)] hover:text-[var(--text)] text-xs font-bold mt-2">CLOSE</button>
+             <button onclick="closeInviteModal()" style="background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:0.75rem; font-weight:bold; margin-top:0.75rem;">CLOSE</button>
         </div>
     </div>
 
-    <!-- 4. PROFILE MODAL (Updated with Sign Out) -->
+    <!-- 4. PROFILE MODAL -->
     <div id="profile-overlay" class="blur-modal-overlay" onclick="closeProfileModal()">
-        <div class="modal-card relative" onclick="event.stopPropagation()">
-            <button onclick="closeProfileModal()" class="absolute top-4 right-4 text-[var(--text-muted)] hover:text-[var(--text)] p-2"><i class="fas fa-times text-xl"></i></button>
-            <h2 class="text-2xl font-bold text-[var(--text)] mb-6 text-center tracking-wide">EDIT IDENTITY</h2>
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <button onclick="closeProfileModal()" style="position:absolute; top:1rem; right:1rem; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.25rem;"><i class="fas fa-times"></i></button>
+            <h2 style="font-size:1.5rem; font-weight:bold; color:var(--text); margin-bottom:1.5rem; text-align:center; letter-spacing:0.05em;">EDIT IDENTITY</h2>
             
-            <div class="flex justify-center mb-6"><div class="relative"><img id="edit-avatar-preview" src="" class="w-16 h-16 rounded-lg border-2 border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.3)]" onerror="this.src='https://api.dicebear.com/9.x/bottts-neutral/svg?seed=fallback'"></div></div>
+            <div style="display:flex; justify-content:center; margin-bottom:1.5rem;">
+                <div style="position:relative;">
+                    <img id="edit-avatar-preview" src="" style="width:4rem; height:4rem; border-radius:0.75rem; border:2px solid var(--primary); box-shadow:0 0 30px rgba(245,158,11,0.3);" onerror="this.src='https://api.dicebear.com/9.x/bottts-neutral/svg?seed=fallback'">
+                </div>
+            </div>
             
-            <div class="space-y-4">
-                <div><label class="text-xs font-bold text-[var(--text-muted)] ml-1 mb-1 block">CUSTOM AVATAR URL</label><input id="edit-avatar" type="text" class="input-field" placeholder="https://..." oninput="document.getElementById('edit-avatar-preview').src = this.value"></div>
+            <div style="display:flex; flex-direction:column; gap:1rem;">
+                <div>
+                    <label style="font-size:0.75rem; font-weight:bold; color:var(--text-muted); margin-left:0.25rem; margin-bottom:0.25rem; display:block;">CUSTOM AVATAR URL</label>
+                    <input id="edit-avatar" type="text" class="input-field" placeholder="https://..." oninput="document.getElementById('edit-avatar-preview').src = this.value">
+                </div>
                 
-                <div><label class="text-xs font-bold text-[var(--text-muted)] ml-1 mb-1 block">ALIAS / NICKNAME</label><input id="edit-alias" type="text" class="input-field" placeholder="@callsign"></div>
-                <div><label class="text-xs font-bold text-[var(--text-muted)] ml-1 mb-1 block">USERNAME</label><input id="edit-username" type="text" class="input-field"></div>
-                <div><label class="text-xs font-bold text-[var(--text-muted)] ml-1 mb-1 block">BIO DATA</label><textarea id="edit-bio" rows="3" class="input-field resize-none"></textarea></div>
-                <button onclick="updateProfile()" class="btn shadow-lg shadow-amber-900/20">SAVE CHANGES</button>
+                <div>
+                    <label style="font-size:0.75rem; font-weight:bold; color:var(--text-muted); margin-left:0.25rem; margin-bottom:0.25rem; display:block;">ALIAS / NICKNAME</label>
+                    <input id="edit-alias" type="text" class="input-field" placeholder="callsign">
+                </div>
+                <div>
+                    <label style="font-size:0.75rem; font-weight:bold; color:var(--text-muted); margin-left:0.25rem; margin-bottom:0.25rem; display:block;">USERNAME</label>
+                    <input id="edit-username" type="text" class="input-field">
+                </div>
+                <div>
+                    <label style="font-size:0.75rem; font-weight:bold; color:var(--text-muted); margin-left:0.25rem; margin-bottom:0.25rem; display:block;">BIO DATA</label>
+                    <textarea id="edit-bio" rows="3" class="input-field" style="resize:none;"></textarea>
+                </div>
+                <button onclick="updateProfile()" class="btn">SAVE CHANGES</button>
                 
-                <!-- NEW SIGN OUT BUTTON -->
-                <div class="border-t border-[var(--border)] pt-4 mt-4">
-                    <button onclick="handleLogout()" class="btn bg-[var(--danger)] text-white w-full">SIGN OUT</button>
+                <div style="border-top:1px solid var(--border); padding-top:1rem; margin-top:1rem;">
+                    <button onclick="handleLogout()" class="btn" style="background:var(--danger);">SIGN OUT</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- AUTH -->
-    <div id="auth-view" class="flex items-center justify-center hidden w-full h-full p-4">
+    <div id="auth-view" class="hidden" style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; padding:1rem;">
         <div class="glass-card text-center">
-            <h1 class="text-5xl text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 font-black mb-2 tracking-tighter">UNIWORLD</h1>
-            <p class="text-gray-500 text-xs mb-8 font-mono tracking-[0.3em]"></p>
+            <h1 class="auth-header">UNIWORLD</h1>
             
             <!-- VERIFICATION VIEW (Hidden by default) -->
-            <div id="verification-view" class="hidden space-y-6">
-                <div class="p-4 border border-amber-500/30 bg-amber-500/10 rounded-lg">
-                    <i class="fas fa-envelope-open-text text-4xl text-amber-500 mb-4"></i>
-                    <h2 class="text-xl font-bold text-amber-500 mb-2">Verification Required</h2>
-                    <p class="text-xs text-gray-400 mb-2">We sent a link to:</p>
-                    <div id="v-email-display" class="font-mono text-white bg-black/30 p-2 rounded mb-2 text-sm"></div>
-                    <p class="text-xs text-gray-400">Please check your inbox (and spam) to activate your account.</p>
+            <div id="verification-view" class="hidden" style="display:flex; flex-direction:column; gap:1.5rem;">
+                <div style="padding:1rem; border:1px solid rgba(245,158,11,0.3); background:rgba(245,158,11,0.1); border-radius:0.5rem;">
+                    <i class="fas fa-envelope-open-text" style="font-size:2.25rem; color:var(--primary); margin-bottom:1rem;"></i>
+                    <h2 style="font-size:1.25rem; font-weight:bold; color:var(--primary); margin-bottom:0.5rem;">Verification Required</h2>
+                    <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.5rem;">We sent a link to:</p>
+                    <div id="v-email-display" class="font-mono" style="color:white; background:rgba(0,0,0,0.3); padding:0.5rem; border-radius:0.25rem; margin-bottom:0.5rem; font-size:0.875rem;"></div>
+                    <p style="font-size:0.75rem; color:var(--text-muted);">Please check your inbox (and spam) to activate your account.</p>
                 </div>
                 
-                <button onclick="checkVerification()" class="btn bg-green-600 hover:bg-green-500 text-white">I'VE VERIFIED (RELOAD)</button>
-                <button onclick="resendVerification()" class="text-xs text-amber-500 hover:text-amber-300 hover:underline block w-full text-center mt-2">Resend Email</button>
-                <button onclick="handleLogout()" class="text-xs text-gray-500 hover:text-gray-300 hover:underline block w-full text-center mt-4">Back to Login</button>
+                <button onclick="checkVerification()" class="btn" style="background:var(--green-500);">I'VE VERIFIED (RELOAD)</button>
+                <button onclick="resendVerification()" style="background:none; border:none; cursor:pointer; font-size:0.75rem; color:var(--primary); display:block; width:100%; margin-top:0.5rem;">Resend Email</button>
+                <button onclick="handleLogout()" style="background:none; border:none; cursor:pointer; font-size:0.75rem; color:var(--gray-500); display:block; width:100%; margin-top:1rem;">Back to Login</button>
             </div>
 
-            <div id="f-login" class="space-y-4">
+            <div id="f-login" style="display:flex; flex-direction:column; gap:1rem;">
                 <div>
                     <input id="l-email" type="text" class="input-field" placeholder="Access ID (Email or Username)">
                     <div id="login-error-email" class="inline-error"></div>
                 </div>
                 
-                <div class="input-group">
-                    <input id="l-pass" type="password" class="input-field" placeholder="Passphrase" style="padding-right: 40px;">
-                    <i id="toggle-l-pass" class="fas fa-eye password-toggle" onclick="togglePassword('l-pass', 'toggle-l-pass')"></i>
-                </div>
-                <div id="login-error-pass" class="inline-error"></div>
+                <!-- Grouped Password & Forgot Password to remove gap -->
+                <div>
+                    <div class="input-group">
+                        <input id="l-pass" type="password" class="input-field" placeholder="Passphrase" style="padding-right: 40px;">
+                        <i id="toggle-l-pass" class="fas fa-eye password-toggle" onclick="togglePassword('l-pass', 'toggle-l-pass')"></i>
+                    </div>
+                    <div id="login-error-pass" class="inline-error"></div>
 
-                <div class="text-right">
-                    <button onclick="handleForgotPassword()" class="text-xs text-amber-500 hover:text-amber-300 hover:underline">Forgot password?</button>
+                    <div class="text-right" style="width:100%;">
+                        <button onclick="handleForgotPassword()" style="background:none; border:none; cursor:pointer; font-size:0.75rem; color:var(--primary);">Forgot password?</button>
+                    </div>
                 </div>
+
                 <button id="btn-login" onclick="handleLogin()" class="btn">ESTABLISH LINK</button>
                 
                 <div onclick="getEl('f-login').classList.add('hidden'); getEl('f-signup').classList.remove('hidden')" class="auth-toggle-btn">
@@ -1351,7 +1287,7 @@
                 </div>
             </div>
 
-            <div id="f-signup" class="hidden space-y-4">
+            <div id="f-signup" class="hidden" style="display:flex; flex-direction:column; gap:1rem;">
                 <div>
                     <input id="s-username" type="text" class="input-field" placeholder="Username (Required)">
                     <div id="signup-error-user" class="inline-error"></div>
@@ -1382,81 +1318,77 @@
     <div id="app-view" class="hidden h-full w-full">
         <div class="app-container">
             <!-- SIDEBAR -->
-            <div id="sidebar" class="sidebar p-4">
-                <div class="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--border)] p-2 rounded-xl">
-                    <img id="my-avatar" class="w-12 h-12 rounded-xl border-2 border-amber-500 bg-gray-800 cursor-pointer" onclick="openProfileModal()" onerror="this.src='https://api.dicebear.com/9.x/bottts-neutral/svg?seed=fallback'">
-                    <div class="flex-1 overflow-hidden cursor-pointer" onclick="openProfileModal()">
-                        <div class="font-bold text-amber-400 truncate text-lg" id="my-name">Anon User</div>
-                        <div class="text-[10px] font-mono flex items-center gap-2 text-[var(--text-muted)]">
-                            STATUS: <span id="status-indicator" class="text-gray-500">●</span> SECURE
+            <div id="sidebar" class="sidebar">
+                <div class="sidebar-profile">
+                    <img id="my-avatar" class="profile-avatar-small" onclick="openProfileModal()" onerror="this.src='https://api.dicebear.com/9.x/bottts-neutral/svg?seed=fallback'">
+                    <div class="profile-info" onclick="openProfileModal()">
+                        <div class="profile-name" id="my-name">Anon User</div>
+                        <div class="profile-status">
+                            STATUS: <span id="status-indicator" style="color:var(--gray-500);">●</span> SECURE
                         </div>
                     </div>
                     <!-- NEW THEME TOGGLE -->
-                    <button id="theme-toggle-btn" onclick="event.stopPropagation(); toggleTheme()" class="text-[var(--text-muted)] hover:text-[var(--text)] p-2 bg-[var(--input-bg)] rounded-full w-8 h-8 flex items-center justify-center transition"><i id="theme-toggle-icon" class="fas fa-sun text-xs"></i></button>
+                    <button id="theme-toggle-btn" onclick="event.stopPropagation(); toggleTheme()" class="icon-btn"><i id="theme-toggle-icon" class="fas fa-sun" style="font-size:0.75rem;"></i></button>
                 </div>
-                <div class="space-y-1 mb-4">
-                    <button onclick="switchPanel('room-list-panel')" class="w-full text-left p-3 text-sm font-bold text-[var(--text)] hover:bg-[var(--input-bg)] rounded-lg flex items-center gap-3"><i class="fas fa-hashtag w-5 text-center text-amber-500"></i> ROOMS</button>
-                    <!-- SETTINGS NOW OPENS PROFILE MODAL -->
-                    <button onclick="openProfileModal()" class="w-full text-left p-3 text-sm font-bold text-[var(--text)] hover:bg-[var(--input-bg)] rounded-lg flex items-center gap-3"><i class="fas fa-sliders-h w-5 text-center text-amber-500"></i> SETTINGS</button>
-                </div>
-<!-- 
-                <div class="mb-4">
-                    <button onclick="showNearby()" class="w-full text-left p-3 text-sm font-bold text-[var(--text)] hover:bg-[var(--input-bg)] rounded-lg flex items-center gap-3">
-                        <i class="fas fa-location-dot w-5 text-center text-amber-500"></i> NEARBY
-                        <span id="radius-display" style="margin-left:auto;color:var(--text-muted);font-size:12px">within 10km</span>
-                    </button>
-                </div> -->
-
-                <div class="mb-4 flex-1 overflow-hidden flex flex-col min-h-[150px]">
-                    <div class="text-[10px] font-bold text-[var(--text-muted)] mb-2 px-2 tracking-widest font-mono">MY ROOMS</div>
-                    <div id="my-rooms-list" class="overflow-y-auto flex-1 pr-1"></div>
+                
+                <div class="sidebar-nav">
+                    <button onclick="switchPanel('room-list-panel')"><i class="fas fa-hashtag"></i> ROOMS</button>
+                    <button onclick="openProfileModal()"><i class="fas fa-sliders-h"></i> SETTINGS</button>
                 </div>
 
-                <div class="text-[10px] font-bold text-[var(--text-muted)] mb-3 px-2 tracking-widest font-mono border-t border-[var(--border)] pt-4">ACTIVE NODES</div>
-                <div id="user-list" class="flex-1 overflow-y-auto pr-1"></div>
+                <div class="my-rooms-container">
+                    <div class="section-label">MY ROOMS</div>
+                    <div id="my-rooms-list" class="my-rooms-list"></div>
+                </div>
+
+                <div class="active-nodes-container">
+                    <div class="section-label">ACTIVE NODES</div>
+                    <div id="user-list" class="user-list"></div>
+                </div>
             </div>
 
             <!-- MAIN -->
             <div class="main-area">
-                <div class="md:hidden h-16 border-b border-[var(--border)] flex items-center justify-between px-4 bg-[var(--bg)] z-20 flex-shrink-0">
-                    <button onclick="toggleSidebar(true)" class="text-amber-500 text-xl p-2"><i class="fas fa-bars"></i></button>
-                    <span class="font-bold text-xl tracking-tight text-amber-500 font-mono">UNIWORLD</span>
-                    <div class="w-8"></div>
+                <div class="mobile-header">
+                    <button onclick="toggleSidebar(true)" style="background:none; border:none; font-size:1.25rem; color:var(--primary); padding:0.5rem; cursor:pointer;"><i class="fas fa-bars"></i></button>
+                    <span style="font-weight:bold; font-size:1.25rem; letter-spacing:-0.025em; color:var(--primary); font-family:monospace;">UNIWORLD</span>
+                    <div style="width:2rem;"></div>
                 </div>
 
-                <div id="room-list-panel" class="p-4 md:p-8 flex-1 overflow-y-auto w-full">
-                    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
-                        <div><h2 class="text-2xl md:text-3xl font-black text-[var(--text)]">ROOMS</h2><p class="text-[var(--text-muted)] text-xs md:text-sm mt-1">Select a frequency</p></div>
-                        <button onclick="createRoom()" class="bg-[var(--input-bg)] text-amber-400 px-4 md:px-6 py-2 md:py-3 rounded-lg text-sm font-bold border border-amber-900/30 hover:border-amber-500 shadow-lg">+ NEW</button>
+                <div id="room-list-panel" class="panel-content">
+                    <div class="header-row">
+                        <div class="header-title"><h2>ROOMS</h2><p>Select a frequency</p></div>
+                        <button onclick="createRoom()" class="new-room-btn">+ NEW</button>
                     </div>
                     
-                    <div class="relative mb-6 w-full max-w-md">
-                        <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-[var(--text-muted)]"></i>
-                        <input id="room-search" type="text" class="w-full bg-[var(--panel)] border border-[var(--border)] rounded-full py-3 pl-10 pr-10 text-[var(--text)] focus:border-amber-500 outline-none transition" placeholder="Search rooms...">
-                        <button onclick="clearSearch()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] p-1 rounded-full"><i class="fas fa-times"></i></button>
+                    <div class="search-container">
+                        <i class="fas fa-search search-icon"></i>
+                        <input id="room-search" type="text" class="search-input" placeholder="Search rooms...">
+                        <button onclick="clearSearch()" class="search-clear"><i class="fas fa-times"></i></button>
                     </div>
 
-                    <div id="room-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+                    <div id="room-grid" class="room-grid"></div>
                 </div>
 
-                <div id="chat-interface" class="absolute inset-0 bg-[var(--bg)] flex flex-col hidden z-30">
-                    <div class="h-16 border-b border-[var(--border)] flex items-center justify-between px-4 bg-[var(--panel)] flex-shrink-0">
-                        <button onclick="goBack()" class="text-[var(--text)] mr-3 p-2 bg-[var(--input-bg)] rounded-lg hover:bg-amber-900/30 border border-[var(--border)]"><i class="fas fa-arrow-left text-lg"></i></button>
-                        <div class="flex flex-col overflow-hidden flex-1">
-                            <div class="font-bold text-lg flex items-center gap-2 truncate"><span class="text-amber-500">#</span> <span id="chat-header-name" class="truncate text-[var(--text)]">Room</span></div>
-                            <div id="chat-header-timer" class="text-[10px] text-amber-600/80 font-mono font-bold uppercase tracking-wider"></div>
+                <div id="chat-interface" class="chat-interface hidden">
+                    <div class="chat-header">
+                        <button onclick="goBack()" style="color:var(--text); margin-right:0.75rem; padding:0.5rem; background:var(--input-bg); border-radius:0.5rem; border:1px solid var(--border); cursor:pointer;"><i class="fas fa-arrow-left"></i></button>
+                        <div class="chat-header-info">
+                            <div class="chat-header-title"><span style="color:var(--primary);">#</span> <span id="chat-header-name" class="truncate">Room</span></div>
+                            <div id="chat-header-timer" class="chat-header-timer"></div>
                         </div>
                         <div id="header-actions"></div>
                     </div>
                     
-                    <div id="typing-indicator" class="typing-indicator bg-[var(--panel)] border-b border-[var(--border)]"></div>
+                    <div id="typing-indicator" class="typing-indicator"></div>
 
-                    <div id="msg-box" class="flex-1 overflow-y-auto p-4 w-full"></div>
-                    <div class="p-3 md:p-4 border-t border-[var(--border)] bg-[var(--panel)] flex gap-2 flex-shrink-0 items-center relative">
+                    <div id="msg-box" class="msg-box"></div>
+                    
+                    <div class="chat-input-wrapper">
                         <div id="mention-dropdown" class="mention-dropdown"></div>
                         
-                        <input id="msg-inp" type="text" class="flex-1 bg-[var(--input-bg)] border-none text-[var(--text)] rounded-lg px-4 py-3 focus:ring-1 focus:ring-amber-500 outline-none transition" placeholder="Encrypting message... (Type @ to mention)" onkeypress="if(event.key==='Enter') sendMsg()">
-                        <button onclick="sendMsg()" class="bg-amber-600 hover:bg-amber-500 text-white w-12 h-12 rounded-lg flex items-center justify-center shadow-lg"><i class="fas fa-paper-plane"></i></button>
+                        <input id="msg-inp" type="text" class="chat-input" placeholder="Encrypting message... (Type @ to mention)" onkeypress="if(event.key==='Enter') sendMsg()">
+                        <button onclick="sendMsg()" class="send-btn"><i class="fas fa-paper-plane"></i></button>
                     </div>
                 </div>
             </div>
